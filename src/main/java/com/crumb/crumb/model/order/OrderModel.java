@@ -45,4 +45,21 @@ public class OrderModel {
     @Size(max = 255, message = "Note must be 255 characters or less")
     private String specialNote;
 
+    public OrderModel(Long customerId, LocalDate requiredDate,
+                      BigDecimal totalAmount, String specialNote) {
+        this.customerId = customerId;
+        this.requiredDate = requiredDate;
+        this.totalAmount = totalAmount;
+        this.specialNote = specialNote;
+        this.status = OrderStatus.PENDING;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        this.orderDate = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = OrderStatus.PENDING;
+        }
+    }
+
 }
