@@ -1,6 +1,10 @@
 package com.crumb.crumb.model.order;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.FutureOrPresent;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -20,18 +24,25 @@ public class OrderModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotNull(message = "Customer id is required")
     private Long customerId;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime orderDate;
 
+    @NotNull(message = "Required date is needed")
+    @FutureOrPresent(message = "Required date cannot be in the past")
     private LocalDate requiredDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus status;
 
+    @NotNull(message = "Total amount is required")
+    @DecimalMin(value = "0.0", message = "Total amount cannot be negative")
     private BigDecimal totalAmount;
 
+    @Size(max = 255, message = "Note must be 255 characters or less")
     private String specialNote;
+
 }
