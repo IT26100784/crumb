@@ -62,4 +62,82 @@ public class OrderModel {
         }
     }
 
+    public void confirm() {
+        if (status != OrderStatus.PENDING) {
+            throw new IllegalStateException("Only PENDING orders can be confirmed");
+        }
+        this.status = OrderStatus.CONFIRMED;
+    }
+
+    public void startBaking() {
+        if (status != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException("Only CONFIRMED orders can start baking");
+        }
+        this.status = OrderStatus.IN_PROGRESS;
+    }
+
+    public void markReady() {
+        if (status != OrderStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Only IN_PROGRESS orders can be marked ready");
+        }
+        this.status = OrderStatus.READY;
+    }
+
+    public void complete() {
+        if (status != OrderStatus.READY) {
+            throw new IllegalStateException("Only READY orders can be completed");
+        }
+        this.status = OrderStatus.COMPLETED;
+    }
+
+    public void cancel() {
+        if (!isCancellable()) {
+            throw new IllegalStateException("This order can no longer be cancelled");
+        }
+        this.status = OrderStatus.CANCELLED;
+    }
+
+    public boolean isCancellable() {
+        return status == OrderStatus.PENDING || status == OrderStatus.CONFIRMED;
+    }
+
+    public void confirm() {
+        if (status != OrderStatus.PENDING) {
+            throw new IllegalStateException("Only PENDING orders can be confirmed");
+        }
+        this.status = OrderStatus.CONFIRMED;
+    }
+
+    public void startBaking() {
+        if (status != OrderStatus.CONFIRMED) {
+            throw new IllegalStateException("Only CONFIRMED orders can start baking");
+        }
+        this.status = OrderStatus.IN_PROGRESS;
+    }
+
+    public void markReady() {
+        if (status != OrderStatus.IN_PROGRESS) {
+            throw new IllegalStateException("Only IN_PROGRESS orders can be marked ready");
+        }
+        this.status = OrderStatus.READY;
+    }
+
+    public void complete() {
+        if (status != OrderStatus.READY) {
+            throw new IllegalStateException("Only READY orders can be completed");
+        }
+        this.status = OrderStatus.COMPLETED;
+    }
+
+    public void cancel() {
+        if (!isCancellable()) {
+            throw new IllegalStateException("This order can no longer be cancelled");
+        }
+        this.status = OrderStatus.CANCELLED;
+    }
+
+    public boolean isCancellable() {
+        return status == OrderStatus.PENDING || status == OrderStatus.CONFIRMED;
+    }
+
 }
