@@ -109,6 +109,3 @@ public class OrderModel {
     }
 
 }
-public class OrderModel {
-
-}
