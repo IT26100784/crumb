@@ -182,15 +182,29 @@ public class UserService {
     }
 
     /**
-     * DELETE: Remove user account from MySQL by ID.
+     * DELETE: Remove user account from MySQL by ID with password verification.
      */
     @Transactional
-    public boolean deleteUser(String id) {
-        if (id != null && userRepository.existsById(id)) {
-            userRepository.deleteById(id);
-            return true;
+    public boolean deleteUser(String id, String password) {
+        if (id == null) {
+            return false;
         }
-        return false;
+        UserModel user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("User with ID '" + id + "' was not found."));
+
+        if (password != null && !password.trim().isEmpty()) {
+            if (!user.getPassword().equals(password)) {
+                throw new IllegalArgumentException("Incorrect password. Account deletion denied.");
+            }
+        }
+
+        userRepository.deleteById(id);
+        return true;
+    }
+
+    @Transactional
+    public boolean deleteUser(String id) {
+        return deleteUser(id, null);
     }
 
     /**

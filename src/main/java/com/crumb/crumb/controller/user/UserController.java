@@ -141,15 +141,18 @@ public class UserController {
      * Endpoint: DELETE /api/users/{id}
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String id, @RequestParam(required = false) String password) {
         try {
-            boolean deleted = userService.deleteUser(id);
+            boolean deleted = userService.deleteUser(id, password);
             if (deleted) {
                 return ResponseEntity.ok(ApiResponse.success("User deleted successfully.", null));
             } else {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(ApiResponse.error("User with ID '" + id + "' not found."));
             }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ApiResponse.error(e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error("Failed to delete user: " + e.getMessage()));

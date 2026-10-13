@@ -89,8 +89,12 @@ public class UserServiceTest {
         assertEquals("42 Lake Drive", updated.getAddress());
         assertEquals("Premium", updated.getCustomerType());
 
-        // 5. DELETE
-        boolean deleted = userService.deleteUser(created.getId());
+        // 5. DELETE with password verification
+        // Wrong password throws exception
+        assertThrows(IllegalArgumentException.class, () -> userService.deleteUser(created.getId(), "wrongpass"));
+
+        // Correct password succeeds
+        boolean deleted = userService.deleteUser(created.getId(), "secret123");
         assertTrue(deleted);
 
         // Verify it no longer exists
