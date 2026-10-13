@@ -1,0 +1,2 @@
+ADMIN|A001|Crumb Owner|admin@crumb.lk|admin123|||Management
+CUSTOMER|C001|Alex Perera|alex@example.com|alex123|077 123 4567|24 Flower Road, Colombo|Regular

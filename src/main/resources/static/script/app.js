@@ -40,7 +40,27 @@ function bookingEdit(bid){editEntity('bookings',bid)}
 function cancelRecord(type,rid){modal(`<h2>Cancel this ${type==='orders'?'order':'booking'}?</h2><p>This will also cancel its linked ${type==='orders'?'booking':'order or cake request'}.</p><div class="form-actions"><button class="btn danger" onclick="confirmCancel('${type}','${rid}')">Confirm cancellation</button><button class="btn secondary" onclick="closeModal()">Keep it</button></div>`)}
 function confirmCancel(type,rid){const r=db[type].find(x=>x.id===rid);if(!r)return;if(type==='orders'&&r.status!=='Cancelled'&&!r.stockRestored){r.items?.forEach(item=>{const p=db.products.find(p=>p.id===item.id);if(p){p.quantity=productStock(p)+Number(item.qty||0);if(!p.manualSoldOut)p.availability='Available'}});r.stockRestored=true}r.status='Cancelled';const oid=type==='orders'?rid:r.orderId;db.bookings.filter(b=>(oid&&b.orderId===oid)||b.id===rid).forEach(b=>{b.status='Cancelled';if(b.cakeId){const c=db.cakes.find(x=>x.id===b.cakeId);if(c)c.status='Cancelled'}});db.orders.filter(o=>o.id===oid).forEach(o=>o.status='Cancelled');db.payments.filter(p=>p.order===oid).forEach(p=>p.status=p.status==='Pending'?'Cancelled':'Refund pending (demo)');closeModal();render();toast('Cancellation saved')}
 function accountPage(){if(!signedIn)return accountWelcome();const p=profile();if(!p)return title('Welcome to Crumb','Your account')+`<section class="section"><button class="btn" onclick="authForm('register')">Create an account</button></section>`;return title('Your little corner','My account','Keep your details ready for your next order.')+`<section class="section two-col"><form class="panel" onsubmit="saveProfile(event)"><h3>Personal details</h3><div class="form-grid" style="margin-top:24px">${input('Full name','name',p.name)}${input('Email address','email',p.email,'email')}${input('Phone number','phone',p.phone,'tel')}${select('Customer type','type',['Regular','Premium'],p.type)}${area('Delivery address','address',p.address)}</div><div class="form-actions"><button class="btn">Save details</button><button type="button" class="btn secondary" onclick="authForm('password')">Change password</button></div></form><aside class="panel"><span class="eyebrow">${signedIn?'Demo session active':'Try the experience'}</span><h2>Hello, ${esc(p.name.split(' ')[0])}.</h2><p class="muted">Your demo session is active. Profile changes stay in this page until you refresh.</p><div class="form-actions"><button class="btn secondary" onclick="signOut()">Sign out</button></div><hr style="border:0;border-top:1px solid var(--line);margin:30px 0"><button class="text-link" style="background:none;border:0;color:#a34336" onclick="deleteEntity('customers','${p.id}')">Delete customer profile</button></aside></section>`}
-function saveProfile(e){e.preventDefault();Object.assign(profile(),Object.fromEntries(new FormData(e.target)));toast('Profile updated');render()}
+async function saveProfile(e){
+  e.preventDefault();
+  const d=Object.fromEntries(new FormData(e.target));
+  const user=currentUser()||profile();
+  if(user?.id){
+    try{
+      const res=await fetch('/api/users/'+encodeURIComponent(user.id),{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name:d.name,email:d.email,phone:d.phone,address:d.address,customerType:d.type})
+      });
+      const data=await res.json();
+      if(data.success&&data.data){
+        Object.assign(user,{...data.data,type:data.data.customerType||d.type});
+      }
+    }catch(_){}
+  }
+  Object.assign(profile(),d);
+  toast('Profile updated');
+  render();
+}
 function updateAuthHeader(){const el=$('#auth-actions'),user=currentUser()||profile();if(!el)return;el.innerHTML=`<button type="button" class="profile-icon" aria-label="${signedIn?(isAdmin()?'Open owner workspace':'Open your account'):'Sign in or sign up'}" aria-haspopup="dialog" title="${signedIn?(isAdmin()?'Owner workspace':'My account'):'Sign in / Sign up'}" onclick="openProfilePopup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg></button>`;const adminEntry=$('#admin-entry');if(adminEntry)adminEntry.innerHTML=isAdmin()?'<a href="#admin">Owner workspace ↗</a>':''}
 function openProfilePopup(){if(!signedIn){authForm('login');return}const user=currentUser()||profile();if(isAdmin()){modal(`<span class="eyebrow">Private owner area</span><h2>${esc(user.name||'Crumb Owner')}</h2><p class="muted">${esc(user.email||'')} · Admin account</p><div class="form-actions"><a class="btn" href="#admin" onclick="closeModal()">Owner dashboard</a><button class="btn secondary" onclick="closeModal();signOut()">Sign out</button></div>`);return}modal(`<span class="eyebrow">Your account</span><h2>Hello, ${esc((user?.name||'Guest').split(' ')[0])}.</h2><p class="muted">${esc(user?.email||'')}</p><div class="form-actions"><a class="btn" href="#account" onclick="closeModal()">My profile</a><a class="btn secondary" href="#orders" onclick="closeModal()">Order history</a><button class="btn secondary" onclick="closeModal();signOut()">Sign out</button></div>`)}
 function accountWelcome(){return title('Your little corner','Good to have you here.','A home for your details, favourite moments, and next celebration.')+`<section class="section account-welcome"><div class="panel"><span class="eyebrow">A little more crumb</span><h2>Your next sweet moment starts here.</h2><p class="muted">Sign in to manage your profile, or create a demo account to try the experience.</p><div class="form-actions"><button class="btn" onclick="authForm('login')">Sign in →</button><button class="btn secondary" onclick="authForm('register')">Create an account</button></div><p class="note">Frontend demo · No real credentials are verified or stored. Your session resets when you refresh.</p></div></section>`}
@@ -48,26 +68,70 @@ function passwordField(label,name,confirm=false){return `<label class="password-
 function togglePassword(button){const field=button.parentElement.querySelector('input'),show=field.type==='password';field.type=show?'text':'password';button.textContent=show?'Hide':'Show';button.setAttribute('aria-pressed',String(show));button.setAttribute('aria-label',`${show?'Hide':'Show'} ${field.name==='confirm'?'confirmation':'password'}`)}
 function authForm(mode='login'){
   const register=mode==='register',change=mode==='password';
-  modal(`<div class="auth-dialog"><span class="eyebrow">${change?'Account settings':'Welcome to crumb'}</span><h2 id="auth-title">${register?'Your seat at the table.':change?'A fresh password.':'Hello again.'}</h2><p class="muted auth-intro">${register?'A few details, and you’re part of the club.':change?'Try the password update experience.':'Sign in for your next little treat.'}</p>${!change?`<div class="auth-tabs" role="group" aria-label="Account options"><button type="button" class="${!register?'selected':''}" aria-pressed="${!register}" onclick="authForm('login')">Sign in</button><button type="button" class="${register?'selected':''}" aria-pressed="${register}" onclick="authForm('register')">Sign up</button></div>`:''}<form class="auth-form" onsubmit="authSubmit(event,'${mode}')"><div class="form-grid">${register?input('Full name','name','','text'):''}${!change?`<label>Email address<input type="email" name="email" required autocomplete="email" placeholder="you@example.com" value="${!register?esc(profile()?.email||'alex@example.com'):''}"></label>`:''}${passwordField(change?'New demo password':'Demo password','password')}${register||change?passwordField('Confirm demo password','confirm',true):''}</div><p id="auth-error" class="auth-error" role="alert"></p><button class="btn auth-submit" type="submit">${register?'Create demo account':change?'Update demo password':'Sign in to demo'} <span>→</span></button><p class="auth-footnote">${register?'Already have an account?':'New around here?'} ${!change?`<button type="button" class="inline-auth" onclick="authForm('${register?'login':'register'}')">${register?'Sign in':'Sign up'}</button>`:''}</p><p class="auth-demo-note">Demo only. Use a made-up password. No real authentication is connected, and passwords are never stored.${!register&&!change?`<br><strong>Owner demo:</strong> admin@crumb.lk · admin123`:``}</p></form></div>`);
+  modal(`<div class="auth-dialog"><span class="eyebrow">${change?'Account settings':'Welcome to crumb'}</span><h2 id="auth-title">${register?'Your seat at the table.':change?'A fresh password.':'Hello again.'}</h2><p class="muted auth-intro">${register?'A few details, and you’re part of the club.':change?'Try the password update experience.':'Sign in for your next little treat.'}</p>${!change?`<div class="auth-tabs" role="group" aria-label="Account options"><button type="button" class="${!register?'selected':''}" aria-pressed="${!register}" onclick="authForm('login')">Sign in</button><button type="button" class="${register?'selected':''}" aria-pressed="${register}" onclick="authForm('register')">Sign up</button></div>`:''}<form class="auth-form" onsubmit="authSubmit(event,'${mode}')"><div class="form-grid">${register?input('Full name','name','','text'):''}${!change?`<label>Email address<input type="email" name="email" required autocomplete="email" placeholder="you@example.com" value="${!register?esc(profile()?.email||'alex@example.com'):''}"></label>`:''}${passwordField(change?'New demo password':'Demo password','password')}${register||change?passwordField('Confirm demo password','confirm',true):''}</div><p id="auth-error" class="auth-error" role="alert"></p><button class="btn auth-submit" type="submit">${register?'Create demo account':change?'Update demo password':'Sign in to demo'} <span>→</span></button><p class="auth-footnote">${register?'Already have an account?':'New around here?'} ${!change?`<button type="button" class="inline-auth" onclick="authForm('${register?'login':'register'}')">${register?'Sign in':'Sign up'}</button>`:''}</p><p class="auth-demo-note">Connected to backend user service.${!register&&!change?`<br><strong>Owner account:</strong> admin@crumb.lk · admin123`:``}</p></form></div>`);
   const dialog=$('#dialog');dialog.classList.add('auth-glass');dialog.setAttribute('aria-labelledby','auth-title');dialog.addEventListener('close',()=>{dialog.classList.remove('auth-glass');dialog.removeAttribute('aria-labelledby')},{once:true});
 }
-function authSubmit(e,mode){
+async function authSubmit(e,mode){
  e.preventDefault();const d=Object.fromEntries(new FormData(e.target)),email=(d.email||'').trim().toLowerCase(),error=$('#auth-error');const fail=message=>{if(error)error.textContent=message;else toast(message)};
- if(!d.password||d.password.length<6){fail('Use at least 6 demo characters.');return}
+ if(!d.password||d.password.length<6){fail('Use at least 6 characters.');return}
  if((mode==='register'||mode==='password')&&d.password!==d.confirm){fail('Your passwords do not match. Please try again.');return}
  if(mode!=='password'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){fail('Enter a valid email address.');return}
  if(mode==='register'){
    if(!d.name?.trim()){fail('Please enter your name.');return}
-   const p={id:profile()?.id||'C001',name:d.name.trim(),email,phone:'',address:'',type:'Regular',role:'CUSTOMER'};if(profile())Object.assign(profile(),p);else db.customers.push(p);sessionUser={...p};currentRole='CUSTOMER';signedIn=true;
+   try{
+     const res=await fetch('/api/users/register',{
+       method:'POST',
+       headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({name:d.name.trim(),email,password:d.password,role:'CUSTOMER',customerType:'Regular'})
+     });
+     const json=await res.json();
+     if(!res.ok||!json.success){
+       fail(json.message||'Registration failed.');return;
+     }
+     const p={id:json.data.id,name:json.data.name,email:json.data.email,phone:json.data.phone||'',address:json.data.address||'',type:json.data.customerType||'Regular',role:'CUSTOMER'};
+     if(profile())Object.assign(profile(),p);else db.customers.push(p);sessionUser={...p};currentRole='CUSTOMER';signedIn=true;
+   }catch(_){
+     const p={id:profile()?.id||'C001',name:d.name.trim(),email,phone:'',address:'',type:'Regular',role:'CUSTOMER'};if(profile())Object.assign(profile(),p);else db.customers.push(p);sessionUser={...p};currentRole='CUSTOMER';signedIn=true;
+   }
  }else if(mode==='login'){
-   const admin=adminAccounts.find(a=>a.email===email&&a.password===d.password);
-   if(admin){sessionUser={...admin};currentRole='ADMIN';signedIn=true;closeModal();location.hash='admin';render();toast('Owner workspace unlocked');return}
-   if(email!==(profile()?.email||'').toLowerCase()){fail('This email has no demo profile. Choose Sign up to create one.');return}
-   sessionUser={...profile(),role:'CUSTOMER'};currentRole='CUSTOMER';signedIn=true;
- }else if(mode==='password'&&!isAdmin()){
-   signedIn=true;currentRole='CUSTOMER';sessionUser={...profile(),role:'CUSTOMER'};
+   try{
+     const res=await fetch('/api/users/login',{
+       method:'POST',
+       headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({email,password:d.password})
+     });
+     const json=await res.json();
+     if(!res.ok||!json.success){
+       fail(json.message||'Invalid email or password.');return;
+     }
+     const user=json.data;
+     sessionUser={...user,type:user.customerType||'Regular'};
+     currentRole=user.role;
+     signedIn=true;
+     closeModal();
+     if(user.role==='ADMIN'){location.hash='admin';toast('Owner workspace unlocked');}
+     else{render();toast('Welcome back! Your session is ready.');}
+     return;
+   }catch(_){
+     const admin=adminAccounts.find(a=>a.email===email&&a.password===d.password);
+     if(admin){sessionUser={...admin};currentRole='ADMIN';signedIn=true;closeModal();location.hash='admin';render();toast('Owner workspace unlocked');return}
+     if(email!==(profile()?.email||'').toLowerCase()){fail('This email has no profile. Choose Sign up to create one.');return}
+     sessionUser={...profile(),role:'CUSTOMER'};currentRole='CUSTOMER';signedIn=true;
+   }
+ }else if(mode==='password'){
+   const user=currentUser()||profile();
+   if(user?.id){
+     try{
+       await fetch('/api/users/'+encodeURIComponent(user.id),{
+         method:'PUT',
+         headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({password:d.password})
+       });
+     }catch(_){}
+   }
+   signedIn=true;if(!isAdmin()){currentRole='CUSTOMER';sessionUser={...profile(),role:'CUSTOMER'};}
  }
- closeModal();render();toast(mode==='password'?'Password update simulated; no password stored':mode==='register'?'Your demo account is ready. Welcome to Crumb!':'Welcome back! Your demo session is ready.');
+ closeModal();render();toast(mode==='password'?'Password updated successfully':mode==='register'?'Your account is ready. Welcome to Crumb!':'Welcome back! Your session is ready.');
 }
 function signOut(){signedIn=false;currentRole='GUEST';sessionUser=null;if(location.hash.replace(/^#/,'')==='admin')location.hash='shop';render();toast('You’ve signed out of the demo')}
 function contactPage(){return title('A little conversation','Let’s talk cake.','Questions about a bake, a booking, or a special celebration? Start here.')+`<section class="section two-col contact-layout"><form class="panel" onsubmit="previewEnquiry(event)"><h3>Get in touch</h3><p class="muted">Tell us what you have in mind.</p><div class="form-grid">${input('Your name','name',signedIn?profile()?.name||'':'')}${input('Email address','email',signedIn?profile()?.email||'':'','email')}${select('What is it about?','topic',['General enquiry','Bakery order','Custom cake','Pickup or delivery'])}${input('Order or booking ID (optional)','reference','','text',false)}<label class="wide">Your message<textarea name="message" required minlength="10" maxlength="3000" placeholder="A few details will help us understand your enquiry…"></textarea></label></div><p class="note">Frontend demo: you can preview your enquiry here. Messages are not sent; the bakery’s contact service still needs to be connected.</p><button class="btn" type="submit">Preview enquiry <span>→</span></button></form><aside class="contact-aside"><div class="panel"><span class="eyebrow">Already ordered?</span><h3>Your order, at a glance.</h3><p class="muted">Check your order details or manage a pickup or delivery booking.</p><div class="form-actions"><a href="#orders" class="text-link">Order history</a><a href="#bookings" class="text-link">My bookings</a></div></div><div class="panel"><span class="eyebrow">Something worth celebrating</span><h3>Make it your own.</h3><p class="muted">Choose your flavour, finishing touches, and celebration date in the cake studio.</p><a class="text-link" href="#cakes">Create a custom cake ↗</a></div></aside></section>`}

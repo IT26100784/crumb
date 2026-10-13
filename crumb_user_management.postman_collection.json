@@ -1,0 +1,172 @@
+{
+  "info": {
+    "_postman_id": "c1f7a4d5-88e2-45e0-b6c8-crumb-user-mgmt",
+    "name": "Crumb Bakery - User Management API",
+    "description": "Postman Collection for testing SE1020 Crumb Bakery User Management CRUD & Auth REST API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Register Customer (Create)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Sarah Silva\",\n  \"email\": \"sarah@example.com\",\n  \"password\": \"sarah123\",\n  \"phone\": \"071 987 6543\",\n  \"address\": \"55 Beach Road, Mount Lavinia\",\n  \"customerType\": \"Regular\",\n  \"role\": \"CUSTOMER\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/users/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users", "register"]
+        },
+        "description": "Registers a new customer in users.txt."
+      }
+    },
+    {
+      "name": "2. Customer Login (Auth)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"alex@example.com\",\n  \"password\": \"alex123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/users/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users", "login"]
+        },
+        "description": "Authenticates a customer and returns profile details."
+      }
+    },
+    {
+      "name": "3. Admin Login (Auth)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@crumb.lk\",\n  \"password\": \"admin123\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/users/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users", "login"]
+        },
+        "description": "Authenticates an administrator with admin privileges."
+      }
+    },
+    {
+      "name": "4. Get All Users (Read)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/users",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users"]
+        },
+        "description": "Retrieves all users saved in users.txt."
+      }
+    },
+    {
+      "name": "5. Get User by ID (Read)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/users/C001",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users", "C001"]
+        },
+        "description": "Retrieves user details by their ID (e.g., C001)."
+      }
+    },
+    {
+      "name": "6. Search Users by Keyword (Read)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/users/search?keyword=alex",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users", "search"],
+          "query": [
+            {
+              "key": "keyword",
+              "value": "alex"
+            }
+          ]
+        },
+        "description": "Searches for users matching the keyword in name, email, or ID."
+      }
+    },
+    {
+      "name": "7. Update User Profile (Update)",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Alex Perera\",\n  \"email\": \"alex@example.com\",\n  \"phone\": \"077 888 9999\",\n  \"address\": \"100 Havelock Road, Colombo 05\",\n  \"customerType\": \"Premium\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/users/C001",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users", "C001"]
+        },
+        "description": "Updates customer phone, address, name, or customer type."
+      }
+    },
+    {
+      "name": "8. Delete User (Delete)",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/users/C002",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "users", "C002"]
+        },
+        "description": "Deletes a user by ID."
+      }
+    }
+  ]
+}
