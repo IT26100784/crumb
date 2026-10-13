@@ -1,17 +1,28 @@
 package com.crumb.crumb.model.user;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
 /**
- * Concrete subclass representing a Bakery Customer.
+ * Concrete JPA Entity representing a Customer, mapped in MySQL table 'users'.
  * 
  * OOP Concepts Applied:
- * - Inheritance: Inherits core user attributes from UserModel.
+ * - Inheritance: Subclasses UserModel.
  * - Polymorphism: Overrides getRoleTitle(), hasAdminAccess(), and toFileRecord().
- * - Encapsulation: Private specific attributes with getters and setters.
+ * - Encapsulation: Private customer-specific fields with getters and setters.
  */
+@Entity
+@DiscriminatorValue("CUSTOMER")
 public class CustomerModel extends UserModel {
 
+    @Column(name = "phone", length = 30)
     private String phone;
+
+    @Column(name = "address", length = 255)
     private String address;
+
+    @Column(name = "customer_type", length = 30)
     private String customerType; // e.g. "Regular", "Premium"
 
     public CustomerModel() {
@@ -42,7 +53,6 @@ public class CustomerModel extends UserModel {
 
     @Override
     public String toFileRecord() {
-        // Delimited record format: CUSTOMER|id|name|email|password|phone|address|customerType
         return String.join("|",
                 "CUSTOMER",
                 id != null ? id : "",

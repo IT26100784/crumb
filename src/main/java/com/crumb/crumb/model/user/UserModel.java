@@ -1,19 +1,36 @@
 package com.crumb.crumb.model.user;
 
+import jakarta.persistence.*;
+
 /**
- * Base abstract class representing a User in the Crumb Bakery platform.
+ * Base abstract JPA Entity representing a User in the Crumb Bakery platform.
+ * Persisted in MySQL database table 'users'.
  * 
  * OOP Concepts Applied:
- * - Encapsulation: Protected attributes with getters and setters, and internal validation.
- * - Abstraction: Abstract methods (getRoleTitle, hasAdminAccess, toFileRecord) that define
- *   the contract for all derived user types.
+ * - Encapsulation: Protected attributes with getters, setters, and internal validation.
+ * - Inheritance: Uses JPA SINGLE_TABLE inheritance for CustomerModel and AdminModel subclasses.
+ * - Abstraction: Defines contract and polymorphic methods for all user types.
  */
+@Entity
+@Table(name = "users")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "role_type", discriminatorType = DiscriminatorType.STRING)
 public abstract class UserModel {
 
+    @Id
+    @Column(name = "id", length = 50)
     protected String id;
+
+    @Column(name = "name", nullable = false, length = 100)
     protected String name;
+
+    @Column(name = "email", nullable = false, unique = true, length = 100)
     protected String email;
+
+    @Column(name = "password", nullable = false, length = 255)
     protected String password;
+
+    @Column(name = "role", nullable = false, length = 20)
     protected String role;
 
     public UserModel() {
@@ -29,19 +46,10 @@ public abstract class UserModel {
 
     // --- Abstract Methods (Demonstrating Polymorphism) ---
 
-    /**
-     * Polymorphic method to return a descriptive title of the user's role and privileges.
-     */
     public abstract String getRoleTitle();
 
-    /**
-     * Polymorphic check for administrative capabilities.
-     */
     public abstract boolean hasAdminAccess();
 
-    /**
-     * Polymorphic method to serialize this user entity into a file-storage text format.
-     */
     public abstract String toFileRecord();
 
     // --- Getters and Setters (Encapsulation) ---

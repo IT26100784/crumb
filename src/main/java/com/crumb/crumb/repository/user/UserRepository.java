@@ -1,49 +1,29 @@
 package com.crumb.crumb.repository.user;
 
 import com.crumb.crumb.model.user.UserModel;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Repository interface for User persistence operations.
- * Demonstrates the Abstraction concept by decoupling business logic from storage details.
+ * Spring Data JPA Repository for MySQL database operations on UserModel entity.
+ * Provides standard CRUD and custom SQL/JPQL queries.
  */
-public interface UserRepository {
+@Repository
+public interface UserRepository extends JpaRepository<UserModel, String> {
 
     /**
-     * Retrieve all users.
-     */
-    List<UserModel> findAll();
-
-    /**
-     * Find a user by their unique ID.
-     */
-    Optional<UserModel> findById(String id);
-
-    /**
-     * Find a user by their unique email address.
+     * Find a user in MySQL by their unique email.
      */
     Optional<UserModel> findByEmail(String email);
 
     /**
-     * Search users by name or email keyword.
+     * Search users in MySQL across name, email, or ID.
      */
-    List<UserModel> search(String keyword);
-
-    /**
-     * Save or update a user.
-     */
-    UserModel save(UserModel user);
-
-    /**
-     * Delete a user by their ID.
-     * @return true if deleted, false if not found.
-     */
-    boolean deleteById(String id);
-
-    /**
-     * Generate the next unique identifier for a user type.
-     */
-    String generateNextId(String role);
+    @Query("SELECT u FROM UserModel u WHERE LOWER(u.name) LIKE LOWER(CONCAT('%', :kw, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :kw, '%')) OR LOWER(u.id) LIKE LOWER(CONCAT('%', :kw, '%'))")
+    List<UserModel> search(@Param("kw") String keyword);
 }

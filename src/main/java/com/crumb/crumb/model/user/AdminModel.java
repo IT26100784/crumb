@@ -1,15 +1,22 @@
 package com.crumb.crumb.model.user;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
+
 /**
- * Concrete subclass representing a Bakery Staff / Administrator.
+ * Concrete JPA Entity representing an Administrator, mapped in MySQL table 'users'.
  * 
  * OOP Concepts Applied:
- * - Inheritance: Inherits core user attributes from UserModel.
+ * - Inheritance: Subclasses UserModel.
  * - Polymorphism: Overrides getRoleTitle(), hasAdminAccess(), and toFileRecord().
- * - Encapsulation: Private specific attributes with getters and setters.
+ * - Encapsulation: Private admin-specific fields with getters and setters.
  */
+@Entity
+@DiscriminatorValue("ADMIN")
 public class AdminModel extends UserModel {
 
+    @Column(name = "department", length = 100)
     private String department;
 
     public AdminModel() {
@@ -37,15 +44,14 @@ public class AdminModel extends UserModel {
 
     @Override
     public String toFileRecord() {
-        // Delimited record format: ADMIN|id|name|email|password|||department
         return String.join("|",
                 "ADMIN",
                 id != null ? id : "",
                 name != null ? name : "",
                 email != null ? email : "",
                 password != null ? password : "",
-                "", // No customer phone
-                "", // No customer address
+                "",
+                "",
                 department != null ? department : "Management"
         );
     }

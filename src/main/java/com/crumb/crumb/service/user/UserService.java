@@ -7,19 +7,21 @@ import com.crumb.crumb.model.user.dto.LoginRequestDTO;
 import com.crumb.crumb.model.user.dto.UserRequestDTO;
 import com.crumb.crumb.model.user.dto.UserResponseDTO;
 import com.crumb.crumb.repository.user.UserRepository;
+import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * Service class handling business logic and validations for User Management.
+ * Service class handling business logic, validations, and MySQL database transactions.
  * 
  * Objectives Satisfied:
- * - Implements Create, Read, Update, Delete (CRUD) operations.
+ * - Implements Create, Read, Update, Delete (CRUD) operations for MySQL database.
  * - Enforces business rules and validation (Email format, password constraints, duplicate checks).
- * - Coordinates between controller endpoints and the persistence layer.
+ * - Seeds default admin and customer data if MySQL users table is empty.
  */
 @Service
 public class UserService {
@@ -33,8 +35,27 @@ public class UserService {
     }
 
     /**
-     * CREATE: Register a new customer or administrator.
+     * Pre-populate MySQL database with default test accounts if empty.
      */
+    @PostConstruct
+    @Transactional
+    public void seedInitialUsers() {
+        try {
+            if (userRepository.count() == 0) {
+                userRepository.save(new AdminModel("A001", "Crumb Owner", "admin@crumb.lk", "admin123", "Management"));
+                userRepository.save(new CustomerModel("C001", "Alex Perera", "alex@example.com", "alex123",
+                        "077 123 4567", "24 Flower Road, Colombo", "Regular"));
+            }
+        } catch (Exception e) {
+            // Log warning if database is still starting up
+            System.err.println("Database seeding note: " + e.getMessage());
+        }
+    }
+
+    /**
+     * CREATE: Register a new customer or administrator in MySQL.
+     */
+    @Transactional
     public UserResponseDTO register(UserRequestDTO request) {
         validateUserRequest(request, true);
 
@@ -43,11 +64,12 @@ public class UserService {
             throw new IllegalArgumentException("A user with this email address already exists.");
         }
 
+        String assignedId = generateNextId(request.getRole());
         UserModel user;
         if ("ADMIN".equalsIgnoreCase(request.getRole())) {
-            user = new AdminModel(null, request.getName(), normalizedEmail, request.getPassword(), "Management");
+            user = new AdminModel(assignedId, request.getName(), normalizedEmail, request.getPassword(), "Management");
         } else {
-            user = new CustomerModel(null, request.getName(), normalizedEmail, request.getPassword(),
+            user = new CustomerModel(assignedId, request.getName(), normalizedEmail, request.getPassword(),
                     request.getPhone(), request.getAddress(),
                     request.getCustomerType() != null ? request.getCustomerType() : "Regular");
         }
@@ -57,7 +79,7 @@ public class UserService {
     }
 
     /**
-     * READ: Authenticate user login credentials.
+     * READ: Authenticate user login credentials from MySQL.
      */
     public UserResponseDTO login(LoginRequestDTO request) {
         if (request.getEmail() == null || request.getEmail().trim().isEmpty()) {
@@ -79,7 +101,7 @@ public class UserService {
     }
 
     /**
-     * READ: Get a user by ID.
+     * READ: Get a user by ID from MySQL.
      */
     public UserResponseDTO getUserById(String id) {
         UserModel user = userRepository.findById(id)
@@ -88,7 +110,7 @@ public class UserService {
     }
 
     /**
-     * READ: Get all registered users.
+     * READ: Get all registered users from MySQL.
      */
     public List<UserResponseDTO> getAllUsers() {
         return userRepository.findAll().stream()
@@ -100,14 +122,18 @@ public class UserService {
      * READ: Search users by keyword (matches name, email, or ID).
      */
     public List<UserResponseDTO> searchUsers(String keyword) {
-        return userRepository.search(keyword).stream()
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return getAllUsers();
+        }
+        return userRepository.search(keyword.trim()).stream()
                 .map(UserResponseDTO::fromEntity)
                 .toList();
     }
 
     /**
-     * UPDATE: Update existing user information.
+     * UPDATE: Update existing user information in MySQL.
      */
+    @Transactional
     public UserResponseDTO updateUser(String id, UserRequestDTO request) {
         UserModel existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("User with ID '" + id + "' was not found."));
@@ -121,7 +147,6 @@ public class UserService {
             if (!EMAIL_PATTERN.matcher(newEmail).matches()) {
                 throw new IllegalArgumentException("Invalid email format.");
             }
-            // Check if another user already owns this email
             Optional<UserModel> userWithSameEmail = userRepository.findByEmail(newEmail);
             if (userWithSameEmail.isPresent() && !userWithSameEmail.get().getId().equalsIgnoreCase(id)) {
                 throw new IllegalArgumentException("Email address is already in use by another account.");
@@ -148,7 +173,7 @@ public class UserService {
             }
         } else if (existingUser instanceof AdminModel admin) {
             if (request.getAddress() != null && !request.getAddress().trim().isEmpty()) {
-                admin.setDepartment(request.getAddress()); // If re-used or passed
+                admin.setDepartment(request.getAddress());
             }
         }
 
@@ -157,10 +182,29 @@ public class UserService {
     }
 
     /**
-     * DELETE: Remove user account by ID.
+     * DELETE: Remove user account from MySQL by ID.
      */
+    @Transactional
     public boolean deleteUser(String id) {
-        return userRepository.deleteById(id);
+        if (id != null && userRepository.existsById(id)) {
+            userRepository.deleteById(id);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Generate sequential IDs (C001, C002, A001, etc.)
+     */
+    private synchronized String generateNextId(String role) {
+        String prefix = "ADMIN".equalsIgnoreCase(role) ? "A" : "C";
+        long count = userRepository.count() + 1;
+        String candidate = String.format("%s%03d", prefix, count);
+        while (userRepository.existsById(candidate)) {
+            count++;
+            candidate = String.format("%s%03d", prefix, count);
+        }
+        return candidate;
     }
 
     /**
