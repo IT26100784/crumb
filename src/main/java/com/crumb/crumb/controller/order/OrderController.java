@@ -44,4 +44,35 @@ public class OrderController {
     public List<OrderModel> getOrdersByStatus(@PathVariable OrderStatus status) {
         return orderService.getOrdersByStatus(status);
     }
+
+    // PUT /api/orders/1/confirm
+    @PutMapping("/{id}/confirm")
+    public OrderModel confirmOrder(@PathVariable Long id) {
+        return orderService.confirmOrder(id);
+    }
+
+    // PUT /api/orders/1/start-baking
+    @PutMapping("/{id}/start-baking")
+    public OrderModel startBaking(@PathVariable Long id) {
+        return orderService.startBaking(id);
+    }
+
+    // PUT /api/orders/1/ready
+    @PutMapping("/{id}/ready")
+    public OrderModel markOrderReady(@PathVariable Long id) {
+        return orderService.markOrderReady(id);
+    }
+
+    // PUT /api/orders/1/complete
+    @PutMapping("/{id}/complete")
+    public OrderModel completeOrder(@PathVariable Long id) {
+        return orderService.completeOrder(id);
+    }
+
+    // PUT /api/orders/1/cancel
+    @PutMapping("/{id}/cancel")
+    public OrderModel cancelOrder(@PathVariable Long id) {
+        return orderService.cancelOrder(id);
+    }
+
 }
