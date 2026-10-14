@@ -1,71 +1,20 @@
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Crumb — Bakery & Custom Cakes</title>
-        <meta name="description" content="Browse fresh bakes, design a celebration cake, and manage your bakery orders.">
-        <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%231c4035'/%3E%3Ctext x='9' y='30' font-size='34' font-family='Georgia' fill='%23fff3dd'%3Ec%3C/text%3E%3C/svg%3E">
-        <meta name="color-scheme" content="light dark">
-        <script src="script/theme.js"></script>
-        <link rel="stylesheet" href="styles/style.css">
-    </head>
-    <body>
-        <div class="announcement">
-            A little joy, fresh from the oven. <span>Made to order. Made for you.</span>
-        </div>
-        <header>
-            <a class="logo" href="#shop">crumb<span>BAKERY & CAKE STUDIO</span></a>
-            <nav aria-label="Main navigation">
-                <a href="#shop">The bakery</a>
-                <a href="#cakes">Custom cakes</a>
-                <a href="#bookings">Bookings</a>
-                <a href="#reviews">Reviews</a>
-                <a href="#contact">Contact us</a>
-                <span class="nav-indicator" aria-hidden="true"></span>
-            </nav>
-            <div class="header-actions">
-                <button type="button" class="theme-toggle" id="theme-toggle" role="switch" aria-checked="false" aria-label="Dark mode" title="Switch colour theme">
-                    <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <circle cx="12" cy="12" r="4"/>
-                        <path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>
-                    </svg>
-                    <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                        <path d="M20.5 14A8.6 8.6 0 0 1 10 3.5 8.6 8.6 0 1 0 20.5 14Z"/>
-                    </svg>
-                </button>
-                <div id="auth-actions" class="auth-actions"></div>
-                <a class="bag" href="#cart">Bag <b id="cart-count">0</b></a>
-            </div>
-        </header>
-        <main id="app"></main>
-        <footer>
-            <a class="logo" href="#shop">crumb<span>GOOD THINGS TAKE BUTTER.</span></a>
-            <div>
-                SE1020 · Bakery Order & Custom Cake Booking Platform<br><small>Frontend demo · Sample data resets when you refresh · No real payments</small>
-            </div>
-            <span id="admin-entry"></span>
-        </footer>
-        <div class="floating-actions" aria-label="Quick actions">
-            <button id="back-to-top" class="back-to-top" type="button" aria-label="Back to top" aria-hidden="true" tabindex="-1" title="Back to top">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M12 19V5M6.5 11.5 12 5l5.5 6.5"/>
-                </svg>
-                <span class="floating-label">Back to top</span>
-            </button>
-            <a class="whatsapp-float" href="https://wa.me/94728909091?text=Hi%20Crumb%20Bakery%2C%20I%27d%20like%20to%20ask%20about%20an%20order." target="_blank" rel="noopener noreferrer" aria-label="Open WhatsApp message" title="Chat on WhatsApp">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M20.5 11.6a8.5 8.5 0 0 1-12.7 7.3L3.5 20l1.2-4.1A8.5 8.5 0 1 1 20.5 11.6Z"/>
-                    <path d="M9.2 8.4c.2-.4.4-.4.7-.4h.5c.2 0 .4.1.5.4l.7 1.7c.1.2 0 .4-.1.6l-.6.6c.7 1.3 1.7 2.2 3 2.8l.6-.6c.2-.2.4-.2.6-.1l1.6.8c.2.1.4.3.3.6-.2.8-.7 1.5-1.5 1.7-1.6.4-3.7-.7-5.2-2.1-1.4-1.4-2.5-3.4-2.1-5.2.1-.3.7-.7 1-1Z"/>
-                </svg>
-                <span class="floating-label">Chat on WhatsApp</span>
-            </a>
-        </div>
-        <dialog id="dialog">
-            <button class="close" aria-label="Close dialog" onclick="document.querySelector('dialog').close()">×</button>
-            <div id="dialog-body"></div>
-        </dialog>
-        <div id="toast" role="status"></div>
-        <script src="script/app.js"></script>
-    </body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"><script src="js/app.js"></script><title>Crumb · Bakes, Curated.</title></head><body>
+<div id="site-header"></div>
+<main class="wrap">
+<div class="hero"><div><h1>Crumb: Bakes, Curated.</h1><p class="lead">Daily artisanal creations, made to order and delivered fresh.</p>
+<div class="cta"><a class="btn" href="menu.html">Order Direct</a><a class="btn ghost" href="custom-cake.html">Custom Designs</a></div>
+<div class="perks"><span><i data-i="leaf"></i>Ethical sourcing</span><span><i data-i="clock"></i>Timely delivery</span><span><i data-i="lock"></i>Secure payments</span></div></div>
+<div class="frame"><img src="images/hero-cake.jpg" alt="Chocolate drip cake topped with strawberries and raspberries"><div class="tag glass t1"><i data-i="cake"></i>Baked fresh daily</div><div class="tag glass t2"><i data-i="gift"></i>Custom designs</div></div></div>
+<section><div class="sh"><h2>Made for every table</h2><p>From a single celebration cake to a full gift hamper.</p></div>
+<div class="cats"><a class="glass cat" href="menu.html?cat=Cakes"><div class="ic" data-i="cake"></div><h3>Specialty Cakes</h3><p>Layered, sculpted and finished by hand to your brief.</p></a>
+<a class="glass cat" href="menu.html?cat=Desserts"><div class="ic" data-i="cookie"></div><h3>Gourmet Desserts</h3><p>Macarons, tarts and individual treats for sharing.</p></a>
+<a class="glass cat" href="menu.html?cat=Gifts"><div class="ic" data-i="gift"></div><h3>Gifts &amp; Hampers</h3><p>Curated boxes for birthdays, thank-yous and corporate gifting.</p></a></div></section>
+<section><div class="sh row2"><div><h2>Fresh from the oven</h2><p>Ready-made favourites you can order today.</p></div><div class="arr"><button class="icon" id="rp" data-i="chevL" aria-label="Previous"></button><button class="icon" id="rn" data-i="chevR" aria-label="Next"></button></div></div><div id="feat" class="rail"></div><p style="margin-top:24px"><a class="btn ghost" href="menu.html">View all bakes</a></p></section>
+<section><div class="sh"><h2>Order in three steps</h2></div>
+<div class="how"><div class="glass"><div class="n">1</div><h3>Choose</h3><p>Pick a ready-made bake, or design a custom cake.</p></div>
+<div class="glass"><div class="n">2</div><h3>We confirm</h3><p>We review your request and confirm the price and date.</p></div>
+<div class="glass"><div class="n">3</div><h3>Enjoy it</h3><p>Your cake is baked fresh and ready for pickup or delivery.</p></div></div></section>
+<section><div class="sh"><h2>Loved by our customers</h2></div><div id="rv" class="rvs"></div></section>
+<section><div class="glass band"><h2>Planning something sweet?</h2><p class="mute">Tell us the occasion and we will take care of the rest.</p><a class="btn" href="custom-cake.html">Book a custom cake</a></div></section>
+</main><div id="site-footer"></div>
+<script>document.addEventListener('DOMContentLoaded',async()=>{const[p,d]=await Promise.all([loadProducts(),api('/reviews')]);renderProducts($('#feat'),p.slice(0,12));railNav($('#feat'),$('#rp'),$('#rn'));renderReviews($('#rv'),(Array.isArray(d)?d:SAMPLE).slice(0,3))})</script></body></html>

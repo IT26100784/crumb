@@ -1,0 +1,15 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"><script src="js/app.js"></script><title>Shop · Crumb</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><div class="ph"><h2>Shop our bakes</h2><p>Ready-made cakes, desserts, pastries and gifts. Want something unique? <a href="custom-cake.html" style="color:var(--brand);font-weight:600">Design a custom cake</a>.</p></div>
+<div class="tool"><div class="opts" id="cats"></div><input id="q" type="search" placeholder="Search cakes and bakes" aria-label="Search products"></div>
+<div id="grid" class="pgrid" style="padding-bottom:72px"></div></main>
+<div id="site-footer"></div>
+<script>document.addEventListener('DOMContentLoaded',async()=>{
+ const P=await loadProducts(),cats=['All',...new Set(P.map(p=>p.category).filter(Boolean))];
+ let cat=new URLSearchParams(location.search).get('cat')||'All',q='';if(!cats.includes(cat))cat='All';
+ const draw=()=>{renderProducts($('#grid'),P.filter(p=>(cat==='All'||p.category===cat)&&(p.name+' '+p.description).toLowerCase().includes(q)),'Nothing matches. Try another search, or design a custom cake.');
+  document.querySelectorAll('#cats .chip').forEach(c=>c.classList.toggle('on',c.dataset.c===cat))};
+ $('#cats').innerHTML=cats.map(c=>`<button class="chip" data-c="${esc(c)}">${esc(c)}</button>`).join('');
+ $('#cats').onclick=e=>{const b=e.target.closest('.chip');if(b){cat=b.dataset.c;draw()}};
+ $('#q').oninput=e=>{q=e.target.value.toLowerCase();draw()};
+ draw()})</script></body></html>

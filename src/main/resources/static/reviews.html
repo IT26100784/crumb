@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"><script src="js/app.js"></script><title>Reviews and feedback · Crumb</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><div class="ph"><h2>Reviews &amp; feedback</h2><p>Tell us how we did, or what we should bake next.</p></div>
+<div class="split"><div><div class="glass sum"><div><div class="big" id="avg">–</div><div class="ro">★★★★★</div><small class="mute" id="cnt"></small></div><div id="dist"></div></div>
+<div class="opts" id="flt"><button class="chip on" data-f="all">All</button><button class="chip" data-f="Review">Reviews</button><button class="chip" data-f="Feedback">Feedback</button><button class="chip" data-f="Suggestion">Suggestions</button></div>
+<div id="list" class="rvs"></div></div>
+<form class="glass form" data-api="/reviews" data-ok="Thanks! Your feedback was posted." style="position:sticky;top:100px">
+<h3>Share your experience</h3>
+<label>Your name<input name="name" required></label>
+<label>This is a<select name="type"><option>Review</option><option>Feedback</option><option>Suggestion</option><option>Complaint</option></select></label>
+<div class="fld"><b>Rating</b><div class="stars"><input type="radio" name="rating" value="5" id="s5" required><label for="s5" title="5 stars">★</label><input type="radio" name="rating" value="4" id="s4"><label for="s4" title="4 stars">★</label><input type="radio" name="rating" value="3" id="s3"><label for="s3" title="3 stars">★</label><input type="radio" name="rating" value="2" id="s2"><label for="s2" title="2 stars">★</label><input type="radio" name="rating" value="1" id="s1"><label for="s1" title="1 star">★</label></div></div>
+<label>Your comments<textarea name="comment" required></textarea></label>
+<button class="btn" type="submit">Post feedback</button></form></div></main>
+<div id="site-footer"></div>
+<script>let list=[],flt='all';
+const draw=()=>{const n=list.length;
+ $('#avg').textContent=n?(list.reduce((a,r)=>a+ +r.rating,0)/n).toFixed(1):'–';$('#cnt').textContent=n+' reviews';
+ $('#dist').innerHTML=[5,4,3,2,1].map(s=>{const c=list.filter(r=>+r.rating===s).length;return `<div><span>${s}</span><i><b style="width:${n?c/n*100:0}%"></b></i><span>${c}</span></div>`}).join('');
+ renderReviews($('#list'),list.filter(r=>flt==='all'||r.type===flt))};
+document.addEventListener('DOMContentLoaded',async()=>{
+ $('#flt').onclick=e=>{const b=e.target.closest('.chip');if(!b)return;flt=b.dataset.f;document.querySelectorAll('#flt .chip').forEach(c=>c.classList.toggle('on',c===b));draw()};
+ const d=await api('/reviews');list=Array.isArray(d)?d:[...SAMPLE];draw()});
+document.addEventListener('saved',async e=>{if(e.detail.demo)list.unshift(e.detail.data);else{const d=await api('/reviews');list=Array.isArray(d)?d:list}draw()});</script></body></html>

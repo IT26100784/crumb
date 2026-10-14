@@ -1,0 +1,44 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="css/style.css"><script src="js/app.js"></script><title>Custom cake booking · Crumb</title></head><body>
+<div id="site-header"></div>
+<main class="wrap"><div class="ph"><h2>Design your cake</h2><p>Three quick steps. Every choice shows its price, and your estimate updates as you go.</p></div>
+<div class="split"><form id="order" class="glass form" data-api="/custom-orders" data-ok="Booking request sent. We will contact you soon.">
+<div class="prog"><i></i><i></i><i></i></div><h3 id="stt"></h3>
+<fieldset class="step" data-t="The occasion">
+<div class="fld"><b>Occasion</b><div class="opts" data-n="occasion" data-v="Birthday|Anniversary|Wedding|Corporate|Other"></div></div>
+<div class="fld"><b>Size</b><div class="opts" data-n="size"></div></div>
+<label>Needed on<input name="date" type="date" required></label></fieldset>
+<fieldset class="step" data-t="The cake">
+<div class="fld"><b>Flavour</b><div class="opts" data-n="flavor"></div></div>
+<div class="fld"><b>Frosting</b><div class="opts" data-n="frosting"></div></div>
+<div class="fld"><b>Dietary</b><div class="opts" data-n="dietary"></div></div>
+<label>Message on cake<input name="message" maxlength="60" placeholder="Happy Birthday Sam"></label>
+<label>Design notes, theme and colours<textarea name="notes"></textarea></label></fieldset>
+<fieldset class="step" data-t="Delivery and contact">
+<div class="fld"><b>How would you like to receive it?</b><div class="opts" data-n="fulfilment"></div></div>
+<div class="g2"><label>Full name<input name="name" required></label><label>Phone<input name="phone" type="tel" required></label></div>
+<label>Email<input name="email" type="email" required></label></fieldset>
+<div class="row"><span class="rt mute">Estimate <b id="tot2"></b></span><button type="button" class="btn ghost" id="back">Back</button><button type="button" class="btn" id="next">Continue</button><button class="btn" id="go" type="submit">Book my cake</button></div></form>
+<aside class="glass info"><h3>Your cake</h3><div id="sum"></div><div class="tot"><span>Estimated total</span><b id="tot"></b></div><p class="mute" style="font-size:.88rem">We confirm the final price after reviewing your design notes.</p></aside></div></main>
+<div id="site-footer"></div>
+<script>document.addEventListener('DOMContentLoaded',async()=>{
+ /* Placeholder prices. Replace here, or serve the same shape from GET /api/cake-options. Recalculate on the server too. */
+ let P={size:{'Small (6–8)':4500,'Medium (10–14)':7000,'Large (16–24)':10500,'Tiered (30+)':18000},
+  flavor:{'Chocolate':0,'Vanilla':0,'Red velvet':600,'Butterscotch':500,'Lemon':400,'Coffee':500},
+  frosting:{'Ganache':700,'Buttercream':0,'Fondant':1200,'Whipped cream':0},
+  dietary:{'None':0,'Eggless':400,'Vegan':1000,'Gluten-free':1000},
+  fulfilment:{'Pickup':0,'Delivery':500}};
+ const o=await api('/cake-options');if(o&&o.size&&o.flavor)P=o;
+ document.querySelectorAll('.opts[data-n]').forEach(el=>{const n=el.dataset.n,m=P[n],vs=m?Object.keys(m):el.dataset.v.split('|');
+  el.innerHTML=vs.map((v,j)=>`<label><input type="radio" name="${n}" value="${esc(v)}"${j?'':' checked'}>${esc(v)}${m?`<em>${n==='size'?money(m[v]):m[v]?'+'+money(m[v]):'Included'}</em>`:''}</label>`).join('')});
+ const f=$('#order'),st=[...f.querySelectorAll('.step')],bar=[...$('.prog').children];let i=0;
+ const L=[['size','Size'],['flavor','Flavour'],['frosting','Frosting'],['dietary','Dietary'],['fulfilment','Receive by']];
+ const upd=()=>{const d=Object.fromEntries(new FormData(f));let t=0;
+  $('#sum').innerHTML=`<div class="ln"><span><small>Occasion</small>${esc(d.occasion)}</span></div><div class="ln"><span><small>Needed on</small>${d.date?fmtDate(d.date):'–'}</span></div>`+L.map(([k,n])=>{const p=+(P[k]?.[d[k]]||0);t+=p;return `<div class="ln"><span><small>${n}</small>${esc(d[k])}</span><b>${p?money(p):'Included'}</b></div>`}).join('');
+  $('#tot').textContent=$('#tot2').textContent=money(t)};
+ const show=n=>{i=n;st.forEach((s,j)=>s.hidden=j!==n);bar.forEach((b,j)=>b.classList.toggle('on',j<=n));$('#back').hidden=!n;$('#next').hidden=n===st.length-1;$('#go').hidden=n!==st.length-1;$('#stt').textContent=st[n].dataset.t};
+ $('#next').onclick=()=>{if([...st[i].querySelectorAll('input,select')].every(x=>x.reportValidity()))show(i+1)};
+ $('#back').onclick=()=>show(i-1);
+ f.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'&&i<st.length-1){e.preventDefault();$('#next').click()}});
+ f.addEventListener('input',upd);f.addEventListener('saved',()=>{show(0);upd()});
+ upd();show(0);
+})</script></body></html>
