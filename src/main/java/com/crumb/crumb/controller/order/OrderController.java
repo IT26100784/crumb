@@ -1,5 +1,7 @@
 package com.crumb.crumb.controller.order;
 
+import com.crumb.crumb.dto.CreateOrderRequest;
+import com.crumb.crumb.dto.OrderResponse;
 import com.crumb.crumb.model.order.OrderModel;
 import com.crumb.crumb.model.order.OrderStatus;
 import com.crumb.crumb.service.order.OrderService;
@@ -21,58 +23,68 @@ public class OrderController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public OrderModel createOrder(@Valid @RequestBody OrderModel order) {
-        return orderService.createOrder(order);
+    public OrderResponse createOrder(@Valid @RequestBody CreateOrderRequest request) {
+        OrderModel order = new OrderModel(
+                request.getCustomerId(),
+                request.getRequiredDate(),
+                request.getTotalAmount(),
+                request.getSpecialNote()
+        );
+
+        return OrderResponse.from(orderService.createOrder(order));
     }
 
     @GetMapping
-    public List<OrderModel> getAllOrders() {
-        return orderService.getAllOrders();
+    public List<OrderResponse> getAllOrders() {
+        return orderService.getAllOrders()
+                .stream()
+                .map(OrderResponse::from)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public OrderModel getOrderById(@PathVariable Long id) {
-        return orderService.getOrderById(id);
+    public OrderResponse getOrderById(@PathVariable Long id) {
+        return OrderResponse.from(orderService.getOrderById(id));
     }
 
     @GetMapping("/customer/{customerId}")
-    public List<OrderModel> getOrdersByCustomer(@PathVariable Long customerId) {
-        return orderService.getOrdersByCustomer(customerId);
+    public List<OrderResponse> getOrdersByCustomer(@PathVariable String customerId) {
+        return orderService.getOrdersByCustomer(customerId)
+                .stream()
+                .map(OrderResponse::from)
+                .toList();
     }
 
     @GetMapping("/status/{status}")
-    public List<OrderModel> getOrdersByStatus(@PathVariable OrderStatus status) {
-        return orderService.getOrdersByStatus(status);
+    public List<OrderResponse> getOrdersByStatus(@PathVariable OrderStatus status) {
+        return orderService.getOrdersByStatus(status)
+                .stream()
+                .map(OrderResponse::from)
+                .toList();
     }
 
-    // PUT /api/orders/1/confirm
     @PutMapping("/{id}/confirm")
-    public OrderModel confirmOrder(@PathVariable Long id) {
-        return orderService.confirmOrder(id);
+    public OrderResponse confirmOrder(@PathVariable Long id) {
+        return OrderResponse.from(orderService.confirmOrder(id));
     }
 
-    // PUT /api/orders/1/start-baking
     @PutMapping("/{id}/start-baking")
-    public OrderModel startBaking(@PathVariable Long id) {
-        return orderService.startBaking(id);
+    public OrderResponse startBaking(@PathVariable Long id) {
+        return OrderResponse.from(orderService.startBaking(id));
     }
 
-    // PUT /api/orders/1/ready
     @PutMapping("/{id}/ready")
-    public OrderModel markOrderReady(@PathVariable Long id) {
-        return orderService.markOrderReady(id);
+    public OrderResponse markOrderReady(@PathVariable Long id) {
+        return OrderResponse.from(orderService.markOrderReady(id));
     }
 
-    // PUT /api/orders/1/complete
     @PutMapping("/{id}/complete")
-    public OrderModel completeOrder(@PathVariable Long id) {
-        return orderService.completeOrder(id);
+    public OrderResponse completeOrder(@PathVariable Long id) {
+        return OrderResponse.from(orderService.completeOrder(id));
     }
 
-    // PUT /api/orders/1/cancel
     @PutMapping("/{id}/cancel")
-    public OrderModel cancelOrder(@PathVariable Long id) {
-        return orderService.cancelOrder(id);
+    public OrderResponse cancelOrder(@PathVariable Long id) {
+        return OrderResponse.from(orderService.cancelOrder(id));
     }
-
 }
