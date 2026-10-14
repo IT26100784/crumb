@@ -25,7 +25,7 @@ public class OrderModel {
     private Long id;
 
     @NotNull(message = "Customer id is required")
-    private Long customerId;
+    private String customerId;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime orderDate;
@@ -45,7 +45,7 @@ public class OrderModel {
     @Size(max = 255, message = "Note must be 255 characters or less")
     private String specialNote;
 
-    public OrderModel(Long customerId, LocalDate requiredDate,
+    public OrderModel(@NotNull String customerId, LocalDate requiredDate,
                       BigDecimal totalAmount, String specialNote) {
         this.customerId = customerId;
         this.requiredDate = requiredDate;

@@ -32,7 +32,7 @@ public class OrderService {
         return orderRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
     }
 
-    public List<OrderModel> getOrdersByCustomer(Long customerId) {
+    public List<OrderModel> getOrdersByCustomer(String customerId) {
         return orderRepository.findByCustomerId(customerId);
     }
 
