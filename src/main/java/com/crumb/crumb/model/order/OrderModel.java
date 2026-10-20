@@ -2,7 +2,6 @@ package com.crumb.crumb.model.order;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -31,7 +30,6 @@ public class OrderModel {
     private LocalDateTime orderDate;
 
     @NotNull(message = "Required date is needed")
-    @FutureOrPresent(message = "Required date cannot be in the past")
     private LocalDate requiredDate;
 
     @Enumerated(EnumType.STRING)

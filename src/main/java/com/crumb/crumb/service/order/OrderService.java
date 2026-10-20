@@ -1,5 +1,6 @@
 package com.crumb.crumb.service.order;
 
+import com.crumb.crumb.dto.CreateOrderRequest;
 import com.crumb.crumb.model.order.OrderModel;
 import com.crumb.crumb.model.order.OrderStatus;
 import com.crumb.crumb.repository.order.OrderRepository;
@@ -26,6 +27,28 @@ public class OrderService {
 
     public List<OrderModel> getAllOrders() {
         return orderRepository.findAll();
+    }
+
+    @Transactional
+    public OrderModel updateOrder(Long id, CreateOrderRequest request) {
+        OrderModel order = getOrderById(id);
+        if (!order.isCancellable()) {
+            throw new IllegalStateException("Only PENDING or CONFIRMED orders can be edited");
+        }
+        order.setCustomerId(request.getCustomerId().trim());
+        order.setRequiredDate(request.getRequiredDate());
+        order.setTotalAmount(request.getTotalAmount());
+        order.setSpecialNote(request.getSpecialNote());
+        return orderRepository.save(order);
+    }
+
+    @Transactional
+    public void deleteOrder(Long id) {
+        OrderModel order = getOrderById(id);
+        if (order.getStatus() != OrderStatus.PENDING && order.getStatus() != OrderStatus.CANCELLED) {
+            throw new IllegalStateException("Only PENDING or CANCELLED orders can be deleted");
+        }
+        orderRepository.delete(order);
     }
 
     public OrderModel getOrderById(Long id) {

@@ -47,6 +47,18 @@ public class OrderController {
         return OrderResponse.from(orderService.getOrderById(id));
     }
 
+    @PutMapping("/{id}")
+    public OrderResponse updateOrder(@PathVariable Long id,
+                                     @Valid @RequestBody CreateOrderRequest request) {
+        return OrderResponse.from(orderService.updateOrder(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOrder(@PathVariable Long id) {
+        orderService.deleteOrder(id);
+    }
+
     @GetMapping("/customer/{customerId}")
     public List<OrderResponse> getOrdersByCustomer(@PathVariable String customerId) {
         return orderService.getOrdersByCustomer(customerId)
