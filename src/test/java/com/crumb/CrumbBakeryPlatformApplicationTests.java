@@ -1,4 +1,4 @@
-package com.crumb.crumbapp;
+package com.crumb;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
