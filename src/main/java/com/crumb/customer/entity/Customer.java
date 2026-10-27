@@ -1,4 +1,4 @@
-package com.crumb.entity;
+package com.crumb.customer.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
