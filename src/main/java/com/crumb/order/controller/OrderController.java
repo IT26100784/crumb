@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 //REST API for retail bakery ordering, status timeline, and fulfillment.
 @RestController
@@ -99,5 +100,23 @@ public class OrderController {
         SessionAuthHelper.requireAdmin(session);
         OrderResponse updated = orderService.updateOrderStatus(id, request);
         return ResponseEntity.ok(ApiResponse.success("Order status updated to " + updated.getStatus(), updated));
+    }
+
+    //Admin endpoint: Delete order record.
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteOrder(
+            @PathVariable Long id,
+            HttpSession session) {
+        SessionAuthHelper.requireAdmin(session);
+        orderService.deleteOrder(id);
+        return ResponseEntity.ok(ApiResponse.success("Order record deleted.", null));
+    }
+
+    //Admin endpoint: Get gross revenue metric.
+    @GetMapping("/stats/revenue")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getRevenueStats(HttpSession session) {
+        SessionAuthHelper.requireAdmin(session);
+        double totalRevenue = orderService.getTotalRevenue();
+        return ResponseEntity.ok(ApiResponse.success(Map.of("totalRevenue", totalRevenue)));
     }
 }
