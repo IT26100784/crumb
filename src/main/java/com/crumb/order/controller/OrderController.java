@@ -65,4 +65,16 @@ public class OrderController {
 
         return ResponseEntity.ok(ApiResponse.success(order));
     }
+
+    //Cancel an order prior to kitchen preparation.
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<ApiResponse<OrderResponse>> cancelOrder(
+            @PathVariable Long id,
+            HttpSession session) {
+        Long currentUserId = SessionAuthHelper.requireLoggedIn(session);
+        boolean isAdmin = SessionAuthHelper.isAdmin(session);
+
+        OrderResponse cancelled = orderService.cancelOrder(id, currentUserId, isAdmin);
+        return ResponseEntity.ok(ApiResponse.success("Order has been cancelled.", cancelled));
+    }
 }
