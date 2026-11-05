@@ -2,6 +2,7 @@ package com.crumb.order.controller;
 
 import com.crumb.common.auth.SessionAuthHelper;
 import com.crumb.common.dto.ApiResponse;
+import com.crumb.common.exception.ForbiddenException;
 import com.crumb.order.dto.OrderCreateRequest;
 import com.crumb.order.dto.OrderResponse;
 import com.crumb.order.service.OrderService;
@@ -37,5 +38,31 @@ public class OrderController {
         Long customerId = SessionAuthHelper.requireLoggedIn(session);
         List<OrderResponse> orders = orderService.getCustomerOrders(customerId);
         return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    /*
+    Tracking endpoint: View order status timeline by tracking order number.
+    Accessible by customers or guests with the receipt code.
+    */
+    @GetMapping("/track/{orderNumber}")
+    public ResponseEntity<ApiResponse<OrderResponse>> trackOrder(@PathVariable String orderNumber) {
+        OrderResponse order = orderService.getOrderByNumber(orderNumber);
+        return ResponseEntity.ok(ApiResponse.success(order));
+    }
+
+    //Retrieve detailed order by ID.
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<OrderResponse>> getOrderById(
+            @PathVariable Long id,
+            HttpSession session) {
+        Long currentUserId = SessionAuthHelper.requireLoggedIn(session);
+        boolean isAdmin = SessionAuthHelper.isAdmin(session);
+
+        OrderResponse order = orderService.getOrderById(id);
+        if (!isAdmin && !order.getCustomerId().equals(currentUserId)) {
+            throw new ForbiddenException("You are not authorized to view another customer's order.");
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(order));
     }
 }
