@@ -5,6 +5,7 @@ import com.crumb.common.dto.ApiResponse;
 import com.crumb.common.exception.ForbiddenException;
 import com.crumb.order.dto.OrderCreateRequest;
 import com.crumb.order.dto.OrderResponse;
+import com.crumb.order.dto.OrderStatusUpdateRequest;
 import com.crumb.order.service.OrderService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -76,5 +77,27 @@ public class OrderController {
 
         OrderResponse cancelled = orderService.cancelOrder(id, currentUserId, isAdmin);
         return ResponseEntity.ok(ApiResponse.success("Order has been cancelled.", cancelled));
+    }
+
+    //Admin endpoint: View all orders with optional status and fulfillment type filters.
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<OrderResponse>>> getAllOrders(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String orderType,
+            HttpSession session) {
+        SessionAuthHelper.requireAdmin(session);
+        List<OrderResponse> orders = orderService.getAllOrders(status, orderType);
+        return ResponseEntity.ok(ApiResponse.success(orders));
+    }
+
+    //Admin endpoint: Advance order fulfillment status (CONFIRMED -> BAKING -> READY -> DELIVERED/COMPLETED).
+    @PutMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateStatus(
+            @PathVariable Long id,
+            @Valid @RequestBody OrderStatusUpdateRequest request,
+            HttpSession session) {
+        SessionAuthHelper.requireAdmin(session);
+        OrderResponse updated = orderService.updateOrderStatus(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Order status updated to " + updated.getStatus(), updated));
     }
 }
