@@ -63,7 +63,6 @@ public class ProductResponse {
                 .reviewCount(product.getReviewCount())
                 .allergens(product.getAllergens())
                 .createdAt(product.getCreatedAt())
-                // POLYMORPHIC CALLS:
                 .category(product.getProductCategory())
                 .storageInstructions(product.getStorageInstructions())
                 .servingRecommendation(product.getServingRecommendation());
