@@ -18,6 +18,14 @@ import java.time.LocalDateTime;
  * and completed orders, powering social proof and quality control.
  */
 
+@Entity
+@Table(name = "reviews")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+
+
 public class Review {
 
     // ENCAPSULATION: private fields with Lombok accessors
