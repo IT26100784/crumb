@@ -7,7 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-//Bread - Entity representing sourdough loaves, baguettes, and artisanal breads.
+//Bread - Entity representing sourdough loaves, baguettes, and  breads.
 
 // INHERITANCE
 @Entity
