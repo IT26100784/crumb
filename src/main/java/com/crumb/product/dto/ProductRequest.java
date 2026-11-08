@@ -8,7 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-//ProductRequest - Data transfer object for creating and modifying bakery products.
+//ProductRequest - Data transfer object for creating and modifying bakery product items.
 @Data
 @Builder
 @NoArgsConstructor
