@@ -35,11 +35,11 @@ public class ProductRequest {
     @NotBlank(message = "Product type (CAKE, PASTRY, BREAD) is required")
     private String productType;
 
-    // Cake-specific fields
+    // Cake-specific fields.
     private String frostingType;
     private Integer layers;
 
-    // Pastry-specific fields
+    // Pastry-specific fields.
     private String pastryType;
     private Boolean warmable;
 
