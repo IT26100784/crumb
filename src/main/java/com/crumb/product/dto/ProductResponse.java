@@ -30,7 +30,7 @@ public class ProductResponse {
     private double rating;
     private int reviewCount;
     private String allergens;
-    private String productType; // CAKE, PASTRY, BREAD
+    private String productType;
     private LocalDateTime createdAt;
 
     // POLYMORPHIC calculated fields
