@@ -1,52 +1,248 @@
 /**
- * CRUMB BAKERY - STATIC PROTOTYPE INTERACTION MODULE (VERSION 1)
- * Purpose: Initial UI prototype supporting dark/light mode toggle,
- * responsive navigation, modal dialogs, and custom inputs before backend integration.
+ * CRUMB BAKERY - COMMON UTILITIES & APP CORE
+ * Component: common
+ * 
+ * WHY: Provides unified API client, notification system (toasts),
+ * Dark/Light theme switching, session persistence, and global UI helpers.
  */
 
-window.Crumb = {
+const Crumb = {
+    // Bakery configuration (Sri Lanka Locale & Hotline)
     config: {
+        apiBase: '/api',
         currencySymbol: 'LKR ',
-        whatsappNumber: '+94728909091'
+        whatsappNumber: '+94728909091', // Standard bakery hotline
+        whatsappMessage: 'Hi Crumb Bakery Sri Lanka! I would like to inquire about ordering delicious artisan cakes and pastries.'
+    },
+
+    // Current authenticated user state cached in memory
+    currentUser: null,
+
+    /**
+     * Centralized HTTP client wrapper.
+     * Automatically handles JSON headers, session cookies, and standardized error parsing.
+     */
+    async api(endpoint, options = {}) {
+        const url = endpoint.startsWith('http') ? endpoint : `${this.config.apiBase}${endpoint}`;
+        
+        const defaultHeaders = {
+            'Accept': 'application/json'
+        };
+
+        if (options.body && !(options.body instanceof FormData)) {
+            defaultHeaders['Content-Type'] = 'application/json';
+            options.body = JSON.stringify(options.body);
+        }
+
+        const config = {
+            ...options,
+            headers: {
+                ...defaultHeaders,
+                ...options.headers
+            },
+            credentials: 'same-origin' // Ensures HTTP session cookie is passed
+        };
+
+        try {
+            const response = await fetch(url, config);
+            const data = await response.json().catch(() => null);
+
+            if (!response.ok) {
+                const errorMessage = (data && data.message) ? data.message : `HTTP ${response.status} Request Failed`;
+                throw new Error(errorMessage);
+            }
+
+            return data;
+        } catch (error) {
+            console.error(`[Crumb API Error] ${endpoint}:`, error.message);
+            throw error;
+        }
     },
 
     /**
-     * Format numbers into Sri Lankan Rupee currency format (e.g., LKR 6,500.00).
+     * Show animated toast notification on screen.
+     * @param {string} message - Feedback message
+     * @param {'success'|'error'|'warning'|'info'} type - Toast variant
+     * @param {string} title - Optional title heading
+     */
+    showToast(message, type = 'info', title = null) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast toast-${type}`;
+
+        const iconMap = {
+            success: 'fa-circle-check',
+            error: 'fa-circle-exclamation',
+            warning: 'fa-triangle-exclamation',
+            info: 'fa-circle-info'
+        };
+
+        const defaultTitleMap = {
+            success: 'Success',
+            error: 'Error',
+            warning: 'Attention',
+            info: 'Information'
+        };
+
+        toast.innerHTML = `
+            <i class="fa-solid ${iconMap[type] || 'fa-bell'} toast-icon"></i>
+            <div class="toast-content">
+                <div class="toast-title">${title || defaultTitleMap[type]}</div>
+                <div>${message}</div>
+            </div>
+            <button class="toast-close" aria-label="Close">&times;</button>
+        `;
+
+        toast.querySelector('.toast-close').addEventListener('click', () => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        });
+
+        container.appendChild(toast);
+
+        // Auto dismiss after 4 seconds
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4200);
+    },
+
+    /**
+     * Formats numeric price to Sri Lankan Rupees string (e.g., LKR 4,500.00).
      */
     formatCurrency(amount) {
-        const val = Number(amount) || 0;
+        const val = typeof amount === 'number' ? amount : parseFloat(amount) || 0;
         return `${this.config.currencySymbol}${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     },
 
     /**
-     * Show animated toast notification popup.
+     * Format ISO datetime to friendly date.
      */
-    showToast(message, type = 'info') {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
-
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type}`;
-        
-        let icon = 'fa-info-circle';
-        if (type === 'success') icon = 'fa-check-circle';
-        else if (type === 'error') icon = 'fa-exclamation-circle';
-        else if (type === 'warning') icon = 'fa-triangle-exclamation';
-
-        toast.innerHTML = `
-            <i class="fa-solid ${icon}"></i>
-            <span>${message}</span>
-        `;
-        container.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.animation = 'toastSlideOut 0.3s forwards';
-            setTimeout(() => toast.remove(), 300);
-        }, 3500);
+    formatDate(dateString) {
+        if (!dateString) return 'N/A';
+        const d = new Date(dateString);
+        return d.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
     },
 
     /**
-     * Modal Helper: Open modal by ID
+     * Theme Manager (Dark / Light mode).
+     * Saves preference to localStorage and respects OS preference.
+     */
+    initTheme() {
+        const savedTheme = localStorage.getItem('crumb_theme');
+        // Default to dark luxury artisan bakery theme matching brand aesthetic
+        const activeTheme = savedTheme || 'dark';
+        document.documentElement.setAttribute('data-theme', activeTheme);
+        this.updateThemeIcons(activeTheme);
+
+        // System theme listener
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                if (!localStorage.getItem('crumb_theme')) {
+                    const newTheme = e.matches ? 'dark' : 'light';
+                    document.documentElement.setAttribute('data-theme', newTheme);
+                    this.updateThemeIcons(newTheme);
+                }
+            });
+        }
+    },
+
+    toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('crumb_theme', newTheme);
+        this.updateThemeIcons(newTheme);
+    },
+
+    updateThemeIcons(theme) {
+        document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
+            const icon = btn.querySelector('i');
+            if (icon) {
+                if (theme === 'dark') {
+                    icon.className = 'fa-solid fa-sun';
+                } else {
+                    icon.className = 'fa-solid fa-moon';
+                }
+            }
+        });
+    },
+
+    /**
+     * Initialize Floating WhatsApp Button
+     */
+    initWhatsApp() {
+        const encodedMsg = encodeURIComponent(this.config.whatsappMessage);
+        const link = `https://wa.me/${this.config.whatsappNumber.replace(/[^0-9]/g, '')}?text=${encodedMsg}`;
+        
+        document.querySelectorAll('.whatsapp-link').forEach(el => {
+            el.href = link;
+            el.target = '_blank';
+            el.rel = 'noopener noreferrer';
+        });
+    },
+
+    /**
+     * Back to Top Button Controller
+     */
+    initBackToTop() {
+        const btn = document.getElementById('back-to-top-btn');
+        if (!btn) return;
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                btn.classList.add('show');
+            } else {
+                btn.classList.remove('show');
+            }
+        });
+
+        btn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    },
+
+    /**
+     * Scroll Reveal Animation Observer
+     */
+    initScrollReveal() {
+        const elements = document.querySelectorAll('.reveal');
+        if (!('IntersectionObserver' in window)) {
+            elements.forEach(el => el.classList.add('revealed'));
+            return;
+        }
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('revealed');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1 });
+
+        elements.forEach(el => observer.observe(el));
+    },
+
+    /**
+     * Open Modal by ID
      */
     openModal(modalId) {
         const modal = document.getElementById(modalId);
@@ -57,7 +253,7 @@ window.Crumb = {
     },
 
     /**
-     * Modal Helper: Close modal by ID
+     * Close Modal by ID
      */
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
@@ -68,195 +264,182 @@ window.Crumb = {
     },
 
     /**
-     * Dark/Light Mode Theme Handler
+     * Close all active modals
      */
-    initTheme() {
-        const savedTheme = localStorage.getItem('crumb-theme');
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        const theme = savedTheme || (prefersDark ? 'dark' : 'light');
-        document.documentElement.setAttribute('data-theme', theme);
-        this.updateThemeToggleIcon(theme);
-    },
-
-    toggleTheme() {
-        const current = document.documentElement.getAttribute('data-theme') || 'dark';
-        const nextTheme = current === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', nextTheme);
-        localStorage.setItem('crumb-theme', nextTheme);
-        this.updateThemeToggleIcon(nextTheme);
-    },
-
-    updateThemeToggleIcon(theme) {
-        document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
-            const icon = btn.querySelector('i');
-            if (icon) {
-                icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-            }
+    closeAllModals() {
+        document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+            modal.classList.remove('active');
         });
+        document.body.style.overflow = '';
     },
 
     /**
-     * Floating WhatsApp Action Button
-     */
-    initWhatsApp() {
-        document.querySelectorAll('.whatsapp-link').forEach(link => {
-            link.href = `https://wa.me/${this.config.whatsappNumber.replace(/[^0-9]/g, '')}`;
-        });
-    },
-
-    /**
-     * Back to Top Smooth Scroll Button
-     */
-    initBackToTop() {
-        const btn = document.getElementById('back-to-top-btn');
-        if (!btn) return;
-
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 400) {
-                btn.classList.add('visible');
-            } else {
-                btn.classList.remove('visible');
-            }
-        }, { passive: true });
-
-        btn.addEventListener('click', () => {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        });
-    },
-
-    /**
-     * Scroll Reveal Animations
-     */
-    initScrollReveal() {
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('revealed');
-                }
-            });
-        }, { threshold: 0.1 });
-
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-    },
-
-    /**
-     * Custom Dark Glass Date Picker
+     * =========================================================================
+     * CUSTOM DARK LUXURY GLASS CALENDAR & DATE PICKER
+     * =========================================================================
      */
     initCustomDatePickers() {
         document.querySelectorAll('input[type="date"]').forEach(input => {
             if (input.dataset.customPickerAttached) return;
             input.dataset.customPickerAttached = 'true';
-            input.readOnly = true;
 
+            // Wrap input in a relative container with a calendar icon
             const wrapper = document.createElement('div');
             wrapper.className = 'custom-date-wrapper';
             input.parentNode.insertBefore(wrapper, input);
             wrapper.appendChild(input);
 
-            const iconBtn = document.createElement('span');
-            iconBtn.className = 'custom-date-icon';
-            iconBtn.innerHTML = '<i class="fa-regular fa-calendar-days"></i>';
-            wrapper.appendChild(iconBtn);
+            const calIcon = document.createElement('i');
+            calIcon.className = 'fa-solid fa-calendar-days custom-date-icon';
+            wrapper.appendChild(calIcon);
 
-            const popup = document.createElement('div');
-            popup.className = 'glass-calendar-popup';
-            wrapper.appendChild(popup);
+            // Create floating calendar popup
+            const pickerPopup = document.createElement('div');
+            pickerPopup.className = 'glass-calendar-popup';
+            pickerPopup.style.display = 'none';
+            document.body.appendChild(pickerPopup);
 
-            let viewDate = new Date();
-            let selectedDate = input.value ? new Date(input.value) : new Date();
+            let currentViewDate = new Date();
 
             const renderCalendar = () => {
-                const year = viewDate.getFullYear();
-                const month = viewDate.getMonth();
-                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-                
-                const firstDayIndex = new Date(year, month, 1).getDay();
+                const year = currentViewDate.getFullYear();
+                const month = currentViewDate.getMonth();
+                const monthNames = [
+                    'January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+
+                const firstDay = new Date(year, month, 1).getDay();
+                // Adjust for Monday start (0=Sun -> 6, 1=Mon -> 0)
+                const startDayOffset = (firstDay === 0 ? 6 : firstDay - 1);
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+                const minDateStr = input.min || new Date().toISOString().split('T')[0];
+                const selectedVal = input.value;
 
                 let html = `
                     <div class="calendar-header">
                         <button type="button" class="cal-nav-btn prev-month"><i class="fa-solid fa-chevron-left"></i></button>
-                        <span class="cal-month-title">${monthNames[month]} ${year}</span>
+                        <div class="cal-month-year">${monthNames[month]} ${year}</div>
                         <button type="button" class="cal-nav-btn next-month"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
-                    <div class="calendar-weekdays">
-                        <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+                    <div class="cal-weekdays">
+                        <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
                     </div>
-                    <div class="calendar-days-grid">
+                    <div class="cal-days-grid">
                 `;
 
-                for (let i = 0; i < firstDayIndex; i++) {
+                // Empty leading days
+                for (let i = 0; i < startDayOffset; i++) {
                     html += `<div class="cal-day empty"></div>`;
                 }
 
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                // Days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const monthStr = String(month + 1).padStart(2, '0');
+                    const dayStr = String(day).padStart(2, '0');
+                    const isoDateStr = `${year}-${monthStr}-${dayStr}`;
 
-                for (let d = 1; d <= daysInMonth; d++) {
-                    const thisDate = new Date(year, month, d);
-                    const isPast = thisDate < today;
-                    const isSelected = selectedDate && (thisDate.toDateString() === selectedDate.toDateString());
+                    const isDisabled = (isoDateStr < minDateStr);
+                    const isSelected = (isoDateStr === selectedVal);
+                    const isToday = (isoDateStr === new Date().toISOString().split('T')[0]);
 
-                    let cls = 'cal-day';
-                    if (isPast) cls += ' disabled';
-                    if (isSelected) cls += ' selected';
+                    let classes = ['cal-day'];
+                    if (isDisabled) classes.push('disabled');
+                    if (isSelected) classes.push('selected');
+                    if (isToday) classes.push('today');
 
-                    html += `<div class="${cls}" data-date="${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}">${d}</div>`;
+                    html += `
+                        <div class="${classes.join(' ')}" data-date="${isoDateStr}">
+                            ${day}
+                        </div>
+                    `;
                 }
 
                 html += `</div>`;
-                popup.innerHTML = html;
+                pickerPopup.innerHTML = html;
 
-                popup.querySelector('.prev-month').addEventListener('click', (e) => {
+                // Bind calendar header nav
+                pickerPopup.querySelector('.prev-month').addEventListener('click', (e) => {
                     e.stopPropagation();
-                    viewDate.setMonth(viewDate.getMonth() - 1);
+                    currentViewDate.setMonth(currentViewDate.getMonth() - 1);
                     renderCalendar();
                 });
 
-                popup.querySelector('.next-month').addEventListener('click', (e) => {
+                pickerPopup.querySelector('.next-month').addEventListener('click', (e) => {
                     e.stopPropagation();
-                    viewDate.setMonth(viewDate.getMonth() + 1);
+                    currentViewDate.setMonth(currentViewDate.getMonth() + 1);
                     renderCalendar();
                 });
 
-                popup.querySelectorAll('.cal-day:not(.disabled):not(.empty)').forEach(dayEl => {
-                    dayEl.addEventListener('click', (e) => {
+                // Bind day clicks
+                pickerPopup.querySelectorAll('.cal-day:not(.disabled):not(.empty)').forEach(cell => {
+                    cell.addEventListener('click', (e) => {
                         e.stopPropagation();
-                        const pickedStr = dayEl.dataset.date;
-                        input.value = pickedStr;
-                        selectedDate = new Date(pickedStr);
-                        popup.classList.remove('active');
+                        const pickedDate = cell.dataset.date;
+                        input.value = pickedDate;
                         input.dispatchEvent(new Event('change', { bubbles: true }));
+                        input.dispatchEvent(new Event('input', { bubbles: true }));
+                        closeCalendar();
                     });
                 });
             };
 
-            const togglePopup = () => {
-                const isOpen = popup.classList.contains('active');
-                document.querySelectorAll('.glass-calendar-popup.active').forEach(p => p.classList.remove('active'));
-                if (!isOpen) {
-                    renderCalendar();
-                    popup.classList.add('active');
+            const openCalendar = () => {
+                // Parse existing input value or min date
+                const initVal = input.value || input.min;
+                if (initVal) {
+                    const parts = initVal.split('-');
+                    if (parts.length === 3) {
+                        currentViewDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, 1);
+                    }
                 }
+                renderCalendar();
+
+                const rect = input.getBoundingClientRect();
+                pickerPopup.style.top = `${rect.bottom + window.scrollY + 6}px`;
+                pickerPopup.style.left = `${Math.max(10, rect.left + window.scrollX)}px`;
+                pickerPopup.style.display = 'block';
+                pickerPopup.classList.add('active');
             };
 
-            wrapper.addEventListener('click', (e) => {
-                if (!popup.contains(e.target)) {
-                    togglePopup();
+            const closeCalendar = () => {
+                pickerPopup.style.display = 'none';
+                pickerPopup.classList.remove('active');
+            };
+
+            // Open on click
+            input.addEventListener('click', (e) => {
+                e.preventDefault();
+                openCalendar();
+            });
+
+            calIcon.addEventListener('click', (e) => {
+                e.preventDefault();
+                openCalendar();
+            });
+
+            // Prevent native browser popup
+            input.addEventListener('keydown', (e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    openCalendar();
                 }
             });
 
+            // Close on outside click
             document.addEventListener('click', (e) => {
-                if (!wrapper.contains(e.target)) {
-                    popup.classList.remove('active');
+                if (!wrapper.contains(e.target) && !pickerPopup.contains(e.target)) {
+                    closeCalendar();
                 }
             });
         });
     },
 
     /**
-     * Custom Dark Glass Select Dropdowns
+     * =========================================================================
+     * CUSTOM DARK LUXURY GLASS SELECT DROPDOWNS
+     * =========================================================================
      */
     initCustomSelects(container = document) {
         if (!container || !container.querySelectorAll) return;
@@ -264,6 +447,7 @@ window.Crumb = {
             if (select.dataset.customSelectAttached) return;
             select.dataset.customSelectAttached = 'true';
 
+            // Hide native select visually while keeping in DOM for form submission & events
             select.style.display = 'none';
 
             const isCompact = select.classList.contains('status-select');
@@ -272,6 +456,7 @@ window.Crumb = {
             select.parentNode.insertBefore(wrapper, select);
             wrapper.appendChild(select);
 
+            // Trigger button
             const trigger = document.createElement('button');
             trigger.type = 'button';
             trigger.className = 'custom-select-trigger';
@@ -282,6 +467,7 @@ window.Crumb = {
             `;
             wrapper.appendChild(trigger);
 
+            // Dropdown menu
             const menu = document.createElement('div');
             menu.className = 'custom-select-menu';
 
@@ -304,6 +490,9 @@ window.Crumb = {
                         item.classList.add('active');
 
                         select.dispatchEvent(new Event('change', { bubbles: true }));
+                        if (typeof select.onchange === 'function') {
+                            select.onchange.call(select, new Event('change', { bubbles: true }));
+                        }
                         closeMenu();
                     });
                 });
@@ -321,6 +510,7 @@ window.Crumb = {
                     document.querySelectorAll('.custom-select-trigger.active').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.custom-select-wrapper.open').forEach(w => w.classList.remove('open'));
                     
+                    // Position detection: if near bottom, open upward
                     const rect = trigger.getBoundingClientRect();
                     const spaceBelow = window.innerHeight - rect.bottom;
                     if (spaceBelow < 230 && rect.top > 230) {
@@ -351,10 +541,22 @@ window.Crumb = {
                     closeMenu();
                 }
             });
+
+            // Allow external sync when select.value is changed programmatically
+            select.addEventListener('refreshCustomSelect', () => {
+                const curOpt = select.options[select.selectedIndex];
+                if (curOpt) {
+                    trigger.querySelector('.custom-select-label').textContent = curOpt.text;
+                    menu.querySelectorAll('.custom-select-option').forEach(o => {
+                        o.classList.toggle('active', o.dataset.value === select.value);
+                    });
+                }
+            });
         });
     }
 };
 
+// Global event listener for modal background clicks and escape key
 document.addEventListener('DOMContentLoaded', () => {
     Crumb.initTheme();
     Crumb.initWhatsApp();
@@ -379,51 +581,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Close modal on close button click
     document.querySelectorAll('.modal-close, [data-modal-close]').forEach(btn => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('click', (e) => {
             const modal = btn.closest('.modal-overlay');
-            if (modal) Crumb.closeModal(modal.id);
-        });
-    });
-
-    // Auth modal open buttons (Guest Sign In button)
-    document.querySelectorAll('.open-auth-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            Crumb.openModal('auth-modal');
-        });
-    });
-
-    // Swiping Auth Tabs
-    const tabBtns = document.querySelectorAll('.auth-tab-btn');
-    const sliderPill = document.getElementById('auth-slider-pill');
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.dataset.tab;
-            tabBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-
-            if (sliderPill) {
-                sliderPill.style.transform = (target === 'register-tab') ? 'translateX(100%)' : 'translateX(0)';
+            if (modal) {
+                Crumb.closeModal(modal.id);
             }
-
-            document.querySelectorAll('.auth-tab-content').forEach(pane => {
-                pane.style.display = (pane.id === target) ? 'block' : 'none';
-            });
         });
     });
 
-    // Mock cart trigger
-    const cartTrigger = document.querySelector('.cart-trigger-btn');
-    if (cartTrigger) {
-        cartTrigger.addEventListener('click', () => {
-            const drawer = document.getElementById('cart-drawer-overlay');
-            if (drawer) drawer.classList.add('active');
-        });
-    }
-    const closeCart = document.getElementById('close-cart-btn');
-    if (closeCart) {
-        closeCart.addEventListener('click', () => {
-            const drawer = document.getElementById('cart-drawer-overlay');
-            if (drawer) drawer.classList.remove('active');
-        });
-    }
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            Crumb.closeAllModals();
+        }
+    });
 });
