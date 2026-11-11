@@ -315,6 +315,23 @@
                             <i class="fa-solid fa-rotate-right"></i> Refresh
                         </button>
                     </div>
+
+                    <div class="customer-toolbar">
+                        <label for="admin-customer-search" class="customer-search-label">
+                            Search customers
+                        </label>
+                        <div class="customer-search-wrap">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <input
+                                    id="admin-customer-search"
+                                    class="form-control"
+                                    type="search"
+                                    placeholder="Search by name, email or customer ID"
+                                    autocomplete="off"
+                            >
+                        </div>
+                    </div>
+
                     <div class="table-responsive">
                         <table class="admin-table">
                             <thead>
@@ -512,6 +529,29 @@
                 </button>
             </form>
         </div>
+    </div>
+</div>
+
+<div class="modal-overlay"
+     id="admin-customer-modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="admin-customer-modal-title">
+
+    <div class="modal-dialog customer-detail-dialog">
+        <div class="modal-header">
+            <h3 class="modal-title" id="admin-customer-modal-title">
+                Customer Details
+            </h3>
+            <button class="modal-close"
+                    type="button"
+                    data-modal-close
+                    aria-label="Close customer details">
+                &times;
+            </button>
+        </div>
+
+        <div class="modal-body" id="admin-customer-detail-content"></div>
     </div>
 </div>
 
