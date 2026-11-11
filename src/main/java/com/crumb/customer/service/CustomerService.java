@@ -1,3 +1,4 @@
+
 package com.crumb.customer.service;
 
 import com.crumb.customer.dto.CustomerResponse;
@@ -21,6 +22,8 @@ public interface CustomerService {
     CustomerResponse updateProfile(Long id, CustomerUpdateRequest request);
 
     CustomerResponse upgradeToPremium(Long id);
+
+    CustomerResponse downgradeToRegular(Long id);
 
     List<CustomerResponse> searchCustomers(String query);
 

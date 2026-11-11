@@ -1270,3 +1270,15 @@
     .order-stepper::before, .stepper-progress { display: none; }
     .step-node { flex-direction: row; width: 100%; justify-content: flex-start; }
 }
+/* Light and Dark Mode Button Text Fix */
+
+.nav-actions .btn,
+.nav-actions a,
+.nav-actions button:not(.theme-toggle-btn):not(.cart-trigger-btn) {
+    color: var(--text-primary) !important;
+}
+
+.hero-cta-group .btn:not(.btn-primary),
+.hero-cta-group a:not(.btn-primary) {
+    color: var(--text-primary) !important;
+}

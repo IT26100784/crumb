@@ -100,6 +100,12 @@ const AdminPortal = {
             });
         }
 
+        const customerSearch = document.getElementById('admin-customer-search');
+        if (customerSearch) {
+            customerSearch.addEventListener('input', () => this.filterCustomers());
+        }
+
+
         // Product Form Submit (Add/Edit)
         const productForm = document.getElementById('admin-product-form');
         if (productForm) {
@@ -578,56 +584,258 @@ const AdminPortal = {
     /**
      * CUSTOMERS DIRECTORY
      */
+
     async loadCustomers() {
         const tbody = document.getElementById('admin-customers-tbody');
         if (!tbody) return;
 
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;"><i class="fa-solid fa-spinner fa-spin"></i> Loading customers...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;">Loading customers...</td></tr>';
 
         try {
             const res = await Crumb.api('/customers');
-            if (res.success && res.data) {
-                this.allCustomers = res.data;
-                this.renderCustomersTable(res.data);
+
+            if (!res.success || !Array.isArray(res.data)) {
+                throw new Error('Could not load customers');
             }
+
+            this.allCustomers = res.data;
+            this.filterCustomers();
+
         } catch (e) {
             tbody.innerHTML = '<tr><td colspan="7" style="color:var(--state-error); text-align:center;">Failed to load customers.</td></tr>';
+            Crumb.showToast(e.message || 'Failed to load customers', 'error');
         }
     },
+
+
+    escapeCustomerText(value) {
+        return String(value ?? '').replace(/[&<>"']/g, ch => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        })[ch]);
+    },
+
+    filterCustomers() {
+        const term = (
+            document.getElementById('admin-customer-search')?.value || ''
+        ).trim().toLowerCase();
+
+        const idTerm = term.replace(/^#?cust-?0*/i, '');
+
+        const results = this.allCustomers.filter(c =>
+            !term ||
+            String(c.fullName || '').toLowerCase().includes(term) ||
+            String(c.email || '').toLowerCase().includes(term) ||
+            String(c.id) === idTerm ||
+            String(c.id) === term
+        );
+
+        this.renderCustomersTable(results);
+    },
+
+
 
     renderCustomersTable(customers) {
         const tbody = document.getElementById('admin-customers-tbody');
         if (!tbody) return;
 
+        if (!customers.length) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-muted);">No matching customers found.</td></tr>';
+            return;
+        }
+
+        const esc = value => this.escapeCustomerText(value);
+
         tbody.innerHTML = customers.map(c => `
-            <tr>
-                <td><span class="customer-id-pill" style="font-size:0.72rem; margin-right:4px;"><i class="fa-solid fa-id-badge"></i> #CUST-0${c.id}</span> <strong>${c.fullName}</strong></td>
-                <td>${c.email}</td>
-                <td>${c.phoneNumber || 'N/A'}</td>
-                <td>
-                    ${c.tier === 'PREMIUM' 
-                        ? '<span class="badge badge-gold"><i class="fa-solid fa-crown"></i> VIP Gold</span>' 
-                        : '<span class="badge badge-cake">Regular</span>'}
-                </td>
-                <td><span class="badge badge-bread">${c.role}</span></td>
-                <td>
-                    <span class="badge ${c.active ? 'badge-success' : 'badge-error'}">${c.active ? 'Active' : 'Suspended'}</span>
-                </td>
-                <td>
-                    <div style="display:flex; gap:0.5rem;">
-                        <button class="btn btn-outline btn-sm" onclick="AdminPortal.toggleCustomerStatus(${c.id})">
-                            ${c.active ? 'Suspend' : 'Activate'}
+    <tr>
+        <td>
+            <span class="customer-id-pill" style="font-size:0.72rem; margin-right:4px;">
+                <i class="fa-solid fa-id-badge"></i> #CUST-0${c.id}
+            </span>
+            <strong>${esc(c.fullName)}</strong>
+        </td>
+
+        <td>${esc(c.email)}</td>
+        <td>${esc(c.phone || 'N/A')}</td>
+
+        <td>
+            ${c.customerType === 'PREMIUM'
+            ? '<span class="badge badge-gold"><i class="fa-solid fa-crown"></i> VIP Gold</span>'
+            : '<span class="badge badge-cake">Regular</span>'}
+        </td>
+
+        <td>
+            <span class="badge badge-bread">${esc(c.role)}</span>
+        </td>
+
+        <td>
+            <span class="badge ${c.active ? 'badge-success' : 'badge-error'}">
+                ${c.active ? 'Active' : 'Suspended'}
+            </span>
+        </td>
+
+        <td>
+            <div class="customer-action-buttons">
+                <button class="btn btn-outline btn-sm"
+                        onclick="AdminPortal.viewCustomer(${c.id})">
+                    <i class="fa-solid fa-eye"></i> View
+                </button>
+
+                ${c.role !== 'ADMIN' ? (
+            c.customerType === 'PREMIUM' ? `
+                        <button class="btn btn-outline btn-sm"
+                                onclick="AdminPortal.downgradeCustomer(${c.id})"
+                                title="Downgrade to Regular">
+                            <i class="fa-solid fa-arrow-down"></i> Downgrade
                         </button>
-                        ${c.role !== 'ADMIN' ? `
-                            <button class="btn btn-outline btn-sm" style="border-color:var(--state-error); color:var(--state-error) !important;" onclick="AdminPortal.deleteCustomer(${c.id})">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        ` : ''}
-                    </div>
-                </td>
-            </tr>
-        `).join('');
+                    ` : `
+                        <button class="btn btn-outline btn-sm"
+                                onclick="AdminPortal.upgradeCustomer(${c.id})"
+                                title="Upgrade to Premium">
+                            <i class="fa-solid fa-crown"></i> Upgrade
+                        </button>
+                    `
+        ) : ''}
+
+                <button class="btn btn-outline btn-sm"
+                        onclick="AdminPortal.toggleCustomerStatus(${c.id})">
+                    ${c.active ? 'Suspend' : 'Activate'}
+                </button>
+
+                ${c.role !== 'ADMIN' ? `
+                    <button class="btn btn-outline btn-sm"
+                            style="border-color:var(--state-error); color:var(--state-error) !important;"
+                            onclick="AdminPortal.deleteCustomer(${c.id})">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                ` : ''}
+            </div>
+        </td>
+    </tr>
+`).join('');
     },
+
+    async viewCustomer(id) {
+        try {
+            const res = await Crumb.api(`/customers/${id}`);
+
+            if (!res.success || !res.data) {
+                throw new Error('Customer details unavailable');
+            }
+
+            const c = res.data;
+            const esc = value => this.escapeCustomerText(value);
+
+            const fields = [
+                ['Customer ID', `#CUST-0${c.id}`],
+                ['Full Name', c.fullName],
+                ['Email', c.email],
+                ['Phone', c.phone || 'N/A'],
+                ['Address', c.address || 'N/A'],
+                ['Role', c.role],
+                ['Membership', c.customerType],
+                ['Badge', c.badge],
+                ['Loyalty Points', c.loyaltyPoints ?? 0],
+                ['Max Active Bookings', c.maxActiveBookings ?? 'N/A'],
+                ['Delivery Discount', c.deliveryDiscount ?? 'N/A'],
+                ['Membership Expiry', c.membershipExpiry || 'N/A'],
+                ['Status', c.active ? 'Active' : 'Suspended'],
+                ['Registered At', c.createdAt
+                    ? new Date(c.createdAt).toLocaleString()
+                    : 'N/A']
+            ];
+
+            document.getElementById('admin-customer-modal-title').textContent =
+                `Customer Details - #CUST-0${c.id}`;
+
+            document.getElementById('admin-customer-detail-content').innerHTML =
+                `<dl class="customer-detail-grid">
+                ${fields.map(([name, value]) => `
+                    <div class="customer-detail-field">
+                        <dt>${esc(name)}</dt>
+                        <dd>${esc(value)}</dd>
+                    </div>
+                `).join('')}
+            </dl>`;
+
+            Crumb.openModal('admin-customer-modal');
+
+        } catch (e) {
+            Crumb.showToast(e.message || 'Could not retrieve customer', 'error');
+        }
+    },
+
+    async upgradeCustomer(id) {
+        const customer = this.allCustomers.find(c => c.id === id);
+
+        if (!customer ||
+            customer.customerType === 'PREMIUM' ||
+            customer.role === 'ADMIN') {
+            return;
+        }
+
+        if (!confirm(`Upgrade ${customer.fullName} to VIP Gold Premium membership?`)) {
+            return;
+        }
+
+        try {
+            const res = await Crumb.api(`/customers/${id}/upgrade`, {
+                method: 'POST'
+            });
+
+            if (!res.success) {
+                throw new Error(res.message || 'Upgrade failed');
+            }
+
+            Crumb.showToast(
+                res.message || 'Customer upgraded to Premium!',
+                'success'
+            );
+
+            await this.loadCustomers();
+
+        } catch (e) {
+            Crumb.showToast(e.message || 'Upgrade failed', 'error');
+        }
+    },
+
+
+    async downgradeCustomer(id) {
+        const customer = this.allCustomers.find(c => c.id === id);
+
+        if (!customer || customer.customerType !== 'PREMIUM' || customer.role === 'ADMIN') {
+            return;
+        }
+
+        if (!confirm(`Downgrade ${customer.fullName} to Regular membership?`)) {
+            return;
+        }
+
+        try {
+            const res = await Crumb.api(`/customers/${id}/downgrade`, {
+                method: 'POST'
+            });
+
+            if (!res.success) {
+                throw new Error(res.message || 'Downgrade failed');
+            }
+
+            Crumb.showToast(
+                res.message || 'Customer downgraded to Regular!',
+                'success'
+            );
+
+            await this.loadCustomers();
+
+        } catch (e) {
+            Crumb.showToast(e.message || 'Downgrade failed', 'error');
+        }
+    },
+
+
 
     async toggleCustomerStatus(id) {
         try {
