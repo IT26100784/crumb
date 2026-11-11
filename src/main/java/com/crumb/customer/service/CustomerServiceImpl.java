@@ -187,16 +187,27 @@ public class CustomerServiceImpl implements CustomerService {
         return CustomerResponse.fromEntity(saved);
     }
 
+
     @Override
     public void deleteCustomer(Long id) {
         Customer customer = getCustomerEntity(id);
 
         if ("ADMIN".equalsIgnoreCase(customer.getRole())) {
-            throw new BadRequestException("Primary administrator accounts cannot be deleted.");
+            throw new BadRequestException(
+                    "Administrator accounts cannot be deleted."
+            );
         }
 
-        customerRepository.delete(customer);
+        try {
+            customerRepository.delete(customer);
+            customerRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            throw new BadRequestException(
+                    "This customer has related records, such as payments or orders, and cannot be deleted. You can suspend their account instead."
+            );
+        }
     }
+
 
     @Override
     public void initDefaultAdmin() {
