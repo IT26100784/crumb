@@ -26,11 +26,14 @@ public class CustomerController {
     public ResponseEntity<ApiResponse<CustomerResponse>> getCustomerById(
             @PathVariable Long id,
             HttpSession session) {
+
         Long currentUserId = SessionAuthHelper.requireLoggedIn(session);
         boolean isAdmin = SessionAuthHelper.isAdmin(session);
 
         if (!isAdmin && !currentUserId.equals(id)) {
-            throw new ForbiddenException("You are not authorized to view another customer's profile.");
+            throw new ForbiddenException(
+                    "You are not authorized to view another customer's profile."
+            );
         }
 
         CustomerResponse customer = customerService.getCustomerById(id);
@@ -42,38 +45,66 @@ public class CustomerController {
             @PathVariable Long id,
             @Valid @RequestBody CustomerUpdateRequest request,
             HttpSession session) {
+
         Long currentUserId = SessionAuthHelper.requireLoggedIn(session);
         boolean isAdmin = SessionAuthHelper.isAdmin(session);
 
         if (!isAdmin && !currentUserId.equals(id)) {
-            throw new ForbiddenException("You are not authorized to edit another customer's profile.");
+            throw new ForbiddenException(
+                    "You are not authorized to edit another customer's profile."
+            );
         }
 
         CustomerResponse updated = customerService.updateProfile(id, request);
-        return ResponseEntity.ok(ApiResponse.success("Profile updated successfully!", updated));
+
+        return ResponseEntity.ok(
+                ApiResponse.success("Profile updated successfully!", updated)
+        );
     }
 
     @PostMapping("/{id}/upgrade")
     public ResponseEntity<ApiResponse<CustomerResponse>> upgradeToPremium(
             @PathVariable Long id,
             HttpSession session) {
-        Long currentUserId = SessionAuthHelper.requireLoggedIn(session);
-        boolean isAdmin = SessionAuthHelper.isAdmin(session);
 
-        if (!isAdmin && !currentUserId.equals(id)) {
-            throw new ForbiddenException("You cannot upgrade someone else's account.");
-        }
+        SessionAuthHelper.requireAdmin(session);
 
         CustomerResponse upgraded = customerService.upgradeToPremium(id);
-        return ResponseEntity.ok(ApiResponse.success("Congratulations! Upgraded to VIP Gold Membership.", upgraded));
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Customer upgraded to VIP Gold Membership successfully.",
+                        upgraded
+                )
+        );
+    }
+
+    @PostMapping("/{id}/downgrade")
+    public ResponseEntity<ApiResponse<CustomerResponse>> downgradeToRegular(
+            @PathVariable Long id,
+            HttpSession session) {
+
+        SessionAuthHelper.requireAdmin(session);
+
+        CustomerResponse downgraded = customerService.downgradeToRegular(id);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Customer downgraded to Regular Membership successfully.",
+                        downgraded
+                )
+        );
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<CustomerResponse>>> getAllCustomers(
             @RequestParam(required = false) String query,
             HttpSession session) {
+
         SessionAuthHelper.requireAdmin(session);
+
         List<CustomerResponse> customers = customerService.searchCustomers(query);
+
         return ResponseEntity.ok(ApiResponse.success(customers));
     }
 
@@ -81,19 +112,35 @@ public class CustomerController {
     public ResponseEntity<ApiResponse<CustomerResponse>> toggleStatus(
             @PathVariable Long id,
             HttpSession session) {
+
         SessionAuthHelper.requireAdmin(session);
+
         CustomerResponse customer = customerService.toggleCustomerStatus(id);
-        return ResponseEntity.ok(ApiResponse.success(
-                customer.isActive() ? "Account activated." : "Account suspended.", customer
-        ));
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        customer.isActive()
+                                ? "Account activated."
+                                : "Account suspended.",
+                        customer
+                )
+        );
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteCustomer(
             @PathVariable Long id,
             HttpSession session) {
+
         SessionAuthHelper.requireAdmin(session);
+
         customerService.deleteCustomer(id);
-        return ResponseEntity.ok(ApiResponse.success("Customer removed successfully.", null));
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Customer removed successfully.",
+                        null
+                )
+        );
     }
 }

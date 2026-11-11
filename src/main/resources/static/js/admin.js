@@ -637,6 +637,7 @@ const AdminPortal = {
     },
 
 
+
     renderCustomersTable(customers) {
         const tbody = document.getElementById('admin-customers-tbody');
         if (!tbody) return;
@@ -649,63 +650,72 @@ const AdminPortal = {
         const esc = value => this.escapeCustomerText(value);
 
         tbody.innerHTML = customers.map(c => `
-        <tr>
-            <td>
-                <span class="customer-id-pill" style="font-size:0.72rem; margin-right:4px;">
-                    <i class="fa-solid fa-id-badge"></i> #CUST-0${c.id}
-                </span>
-                <strong>${esc(c.fullName)}</strong>
-            </td>
+    <tr>
+        <td>
+            <span class="customer-id-pill" style="font-size:0.72rem; margin-right:4px;">
+                <i class="fa-solid fa-id-badge"></i> #CUST-0${c.id}
+            </span>
+            <strong>${esc(c.fullName)}</strong>
+        </td>
 
-            <td>${esc(c.email)}</td>
-            <td>${esc(c.phone || 'N/A')}</td>
+        <td>${esc(c.email)}</td>
+        <td>${esc(c.phone || 'N/A')}</td>
 
-            <td>
-                ${c.customerType === 'PREMIUM'
+        <td>
+            ${c.customerType === 'PREMIUM'
             ? '<span class="badge badge-gold"><i class="fa-solid fa-crown"></i> VIP Gold</span>'
             : '<span class="badge badge-cake">Regular</span>'}
-            </td>
+        </td>
 
-            <td>
-                <span class="badge badge-bread">${esc(c.role)}</span>
-            </td>
+        <td>
+            <span class="badge badge-bread">${esc(c.role)}</span>
+        </td>
 
-            <td>
-                <span class="badge ${c.active ? 'badge-success' : 'badge-error'}">
-                    ${c.active ? 'Active' : 'Suspended'}
-                </span>
-            </td>
+        <td>
+            <span class="badge ${c.active ? 'badge-success' : 'badge-error'}">
+                ${c.active ? 'Active' : 'Suspended'}
+            </span>
+        </td>
 
-            <td>
-                <div class="customer-action-buttons">
-                    <button class="btn btn-outline btn-sm"
-                            onclick="AdminPortal.viewCustomer(${c.id})">
-                        <i class="fa-solid fa-eye"></i> View
-                    </button>
+        <td>
+            <div class="customer-action-buttons">
+                <button class="btn btn-outline btn-sm"
+                        onclick="AdminPortal.viewCustomer(${c.id})">
+                    <i class="fa-solid fa-eye"></i> View
+                </button>
 
-                    ${c.customerType !== 'PREMIUM' && c.role !== 'ADMIN' ? `
+                ${c.role !== 'ADMIN' ? (
+            c.customerType === 'PREMIUM' ? `
                         <button class="btn btn-outline btn-sm"
-                                onclick="AdminPortal.upgradeCustomer(${c.id})">
+                                onclick="AdminPortal.downgradeCustomer(${c.id})"
+                                title="Downgrade to Regular">
+                            <i class="fa-solid fa-arrow-down"></i> Downgrade
+                        </button>
+                    ` : `
+                        <button class="btn btn-outline btn-sm"
+                                onclick="AdminPortal.upgradeCustomer(${c.id})"
+                                title="Upgrade to Premium">
                             <i class="fa-solid fa-crown"></i> Upgrade
                         </button>
-                    ` : ''}
+                    `
+        ) : ''}
 
+                <button class="btn btn-outline btn-sm"
+                        onclick="AdminPortal.toggleCustomerStatus(${c.id})">
+                    ${c.active ? 'Suspend' : 'Activate'}
+                </button>
+
+                ${c.role !== 'ADMIN' ? `
                     <button class="btn btn-outline btn-sm"
-                            onclick="AdminPortal.toggleCustomerStatus(${c.id})">
-                        ${c.active ? 'Suspend' : 'Activate'}
+                            style="border-color:var(--state-error); color:var(--state-error) !important;"
+                            onclick="AdminPortal.deleteCustomer(${c.id})">
+                        <i class="fa-solid fa-trash-can"></i>
                     </button>
-
-                    ${c.role !== 'ADMIN' ? `
-                        <button class="btn btn-outline btn-sm"
-                                style="border-color:var(--state-error); color:var(--state-error) !important;"
-                                onclick="AdminPortal.deleteCustomer(${c.id})">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    ` : ''}
-                </div>
-            </td>
-        </tr>
-    `).join('');
+                ` : ''}
+            </div>
+        </td>
+    </tr>
+`).join('');
     },
 
     async viewCustomer(id) {
@@ -791,6 +801,40 @@ const AdminPortal = {
             Crumb.showToast(e.message || 'Upgrade failed', 'error');
         }
     },
+
+
+    async downgradeCustomer(id) {
+        const customer = this.allCustomers.find(c => c.id === id);
+
+        if (!customer || customer.customerType !== 'PREMIUM' || customer.role === 'ADMIN') {
+            return;
+        }
+
+        if (!confirm(`Downgrade ${customer.fullName} to Regular membership?`)) {
+            return;
+        }
+
+        try {
+            const res = await Crumb.api(`/customers/${id}/downgrade`, {
+                method: 'POST'
+            });
+
+            if (!res.success) {
+                throw new Error(res.message || 'Downgrade failed');
+            }
+
+            Crumb.showToast(
+                res.message || 'Customer downgraded to Regular!',
+                'success'
+            );
+
+            await this.loadCustomers();
+
+        } catch (e) {
+            Crumb.showToast(e.message || 'Downgrade failed', 'error');
+        }
+    },
+
 
 
     async toggleCustomerStatus(id) {

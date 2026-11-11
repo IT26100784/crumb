@@ -1,3 +1,4 @@
+
 package com.crumb.customer.service;
 
 import com.crumb.common.exception.BadRequestException;
@@ -28,7 +29,6 @@ public class CustomerServiceImpl implements CustomerService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    //dependency
     public CustomerResponse register(RegisterRequest request) {
         if (customerRepository.existsByEmail(request.getEmail().trim().toLowerCase())) {
             throw new BadRequestException("An account with email " + request.getEmail() + " already exists.");
@@ -98,6 +98,7 @@ public class CustomerServiceImpl implements CustomerService {
 
         customer.setFullName(request.getFullName().trim());
         customer.setPhone(request.getPhone().trim());
+
         if (request.getAddress() != null) {
             customer.setAddress(request.getAddress().trim());
         }
@@ -116,31 +117,54 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public CustomerResponse upgradeToPremium(Long id) {
         Customer current = getCustomerEntity(id);
+
+        if ("ADMIN".equalsIgnoreCase(current.getRole())) {
+            throw new BadRequestException("Administrator membership cannot be changed.");
+        }
+
         if (current instanceof PremiumCustomer) {
             return CustomerResponse.fromEntity(current);
         }
 
-        PremiumCustomer premium = new PremiumCustomer();
-        premium.setId(current.getId());
-        premium.setFullName(current.getFullName());
-        premium.setEmail(current.getEmail());
-        premium.setPhone(current.getPhone());
-        premium.setPassword(current.getPassword());
-        premium.setAddress(current.getAddress());
-        premium.setRole(current.getRole());
-        premium.setLoyaltyPoints(current.getLoyaltyPoints() + 100);
-        premium.setActive(current.isActive());
-        premium.setMembershipExpiry(LocalDate.now().plusYears(1));
-        premium.setVipConciergeNote("Upgraded to VIP Tier");
+        LocalDate expiry = LocalDate.now().plusYears(1);
 
-        Customer saved = customerRepository.save(premium);
-        return CustomerResponse.fromEntity(saved);
+        int updated = customerRepository.upgradeCustomerToPremium(id, expiry);
+
+        if (updated == 0) {
+            throw new BadRequestException("Customer could not be upgraded to Premium.");
+        }
+
+        Customer upgraded = getCustomerEntity(id);
+        return CustomerResponse.fromEntity(upgraded);
+    }
+
+    @Override
+    public CustomerResponse downgradeToRegular(Long id) {
+        Customer current = getCustomerEntity(id);
+
+        if ("ADMIN".equalsIgnoreCase(current.getRole())) {
+            throw new BadRequestException("Administrator membership cannot be changed.");
+        }
+
+        if (current instanceof RegularCustomer) {
+            return CustomerResponse.fromEntity(current);
+        }
+
+        int updated = customerRepository.downgradeCustomerToRegular(id);
+
+        if (updated == 0) {
+            throw new BadRequestException("Customer could not be downgraded to Regular.");
+        }
+
+        Customer downgraded = getCustomerEntity(id);
+        return CustomerResponse.fromEntity(downgraded);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<CustomerResponse> searchCustomers(String query) {
         List<Customer> customers;
+
         if (query != null && !query.trim().isEmpty()) {
             customers = customerRepository.findByFullNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
                     query.trim(), query.trim()
@@ -158,6 +182,7 @@ public class CustomerServiceImpl implements CustomerService {
     public CustomerResponse toggleCustomerStatus(Long id) {
         Customer customer = getCustomerEntity(id);
         customer.setActive(!customer.isActive());
+
         Customer saved = customerRepository.save(customer);
         return CustomerResponse.fromEntity(saved);
     }
@@ -165,9 +190,11 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     public void deleteCustomer(Long id) {
         Customer customer = getCustomerEntity(id);
+
         if ("ADMIN".equalsIgnoreCase(customer.getRole())) {
             throw new BadRequestException("Primary administrator accounts cannot be deleted.");
         }
+
         customerRepository.delete(customer);
     }
 
@@ -175,6 +202,7 @@ public class CustomerServiceImpl implements CustomerService {
     public void initDefaultAdmin() {
         if (!customerRepository.existsByEmail("admin@crumb.com")) {
             PremiumCustomer admin = new PremiumCustomer();
+
             admin.setFullName("Crumb Head Baker Admin");
             admin.setEmail("admin@crumb.com");
             admin.setPhone("0112345678");
