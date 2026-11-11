@@ -28,6 +28,7 @@ public class CustomerServiceImpl implements CustomerService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    //dependency
     public CustomerResponse register(RegisterRequest request) {
         if (customerRepository.existsByEmail(request.getEmail().trim().toLowerCase())) {
             throw new BadRequestException("An account with email " + request.getEmail() + " already exists.");
